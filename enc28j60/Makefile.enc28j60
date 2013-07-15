@@ -1,0 +1,2 @@
+DEV_SOURCES +=	enc28j60.c network.c
+LIBS += avrlib-avrlib-conf
