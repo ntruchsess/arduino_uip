@@ -140,14 +140,14 @@ typedef unsigned short uip_stats_t;
 #define IP_OUTPUT_BUFFER_LENGTH 16
 
 #include "utility/psock.h"
-typedef struct serialip_state {
+typedef struct enc28j60ip_state {
   struct psock p;
 //  char inputbuffer[IP_INPUT_BUFFER_LENGTH];
   void *user;
 } uip_tcp_appstate_t;
 
-void serialip_appcall(void);
-#define UIP_APPCALL serialip_appcall
+void enc28j60ip_appcall(void);
+#define UIP_APPCALL enc28j60ip_appcall
 
 #endif /* __UIP_CONF_H__ */
 

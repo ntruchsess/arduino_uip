@@ -1,5 +1,5 @@
 /*
-  SerialIP.h - Arduino implementation of a uIP wrapper class.
+  Enc28J60IP.h - Arduino implementation of a uIP wrapper class.
   Copyright (c) 2010 Adam Nielsen <malvineous@shikadi.net>
   All rights reserved.
 
@@ -18,8 +18,8 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef SerialIP_h
-#define SerialIP_h
+#ifndef Enc28J60IP_h
+#define Enc28J60IP_h
 
 #include <Arduino.h>
 
@@ -53,13 +53,13 @@ extern fn_my_cb_t x;
 //typedef Serial_ SerialDevice;
 
 
-class SerialIPStack {//: public Print {
+class Enc28J60IPStack {//: public Print {
 	public:
-		SerialIPStack();
+		Enc28J60IPStack();
 
 //		void use_device(SerialDevice& dev);
 		void attach_functions(unsigned char (*)(char *), void (*)(unsigned char));
- 		
+
 		void begin(IP_ADDR myIP, IP_ADDR subnet);
 		void set_gateway(IP_ADDR myIP);
 		void listen(uint16_t port);
@@ -104,16 +104,16 @@ class SerialIPStack {//: public Print {
 	private:
 		struct timer periodic_timer;
 		//, arp_timer;
-		struct serialip_state *cur_conn; // current connection (for print etc.)
+		struct Enc28J60IP_state *cur_conn; // current connection (for print etc.)
 		fn_uip_cb_t fn_uip_cb;
 		void uip_callback();
 
-	friend void serialip_appcall(void);
+	friend void Enc28J60IP_appcall(void);
 
 };
 
 //void handle_ip_event(uint8_t type, ip_connection_t *conn, void **user);
 
-extern SerialIPStack SerialIP;
+extern Enc28J60IPStack Enc28J60IP;
 
 #endif

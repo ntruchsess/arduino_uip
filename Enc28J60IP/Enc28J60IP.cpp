@@ -1,5 +1,5 @@
 /*
-  SerialIP.cpp - Arduino implementation of a uIP wrapper class.
+  Enc28J60IP.cpp - Arduino implementation of a uIP wrapper class.
   Copyright (c) 2010 Adam Nielsen <malvineous@shikadi.net>
   All rights reserved.
 
@@ -19,7 +19,7 @@
 */
 
 #include <Arduino.h>
-#include "SerialIP.h"
+#include "Enc28J60IP.h"
 #include "uip-conf.h"
 
 extern "C" {
@@ -34,13 +34,13 @@ extern "C" {
 // we can set which serial port to use, for those boards with more than one.
 //SerialDevice *slip_device;
 
-SerialIPStack::SerialIPStack() :
+Enc28J60IPStack::Enc28J60IPStack() :
 	fn_uip_cb(NULL)
 {
 }
 
 /*
-void SerialIPStack::use_device(SerialDevice& dev)
+void Enc28J60IPStack::use_device(SerialDevice& dev)
 {
 	::slip_device = &dev;
 }
@@ -50,13 +50,13 @@ void SerialIPStack::use_device(SerialDevice& dev)
 
 
 // This function allows you to attach any functions to chip-select the MMC card
-void SerialIPStack::attach_functions( unsigned char (* rx)(char *), void (* tx)(unsigned char))
+void Enc28J60IPStack::attach_functions( unsigned char (* rx)(char *), void (* tx)(unsigned char))
 {
    attach_functs(rx,tx);
 }
 
 
-void SerialIPStack::begin(IP_ADDR myIP, IP_ADDR subnet)
+void Enc28J60IPStack::begin(IP_ADDR myIP, IP_ADDR subnet)
 {
 	uip_ipaddr_t ipaddr;
 
@@ -72,19 +72,19 @@ void SerialIPStack::begin(IP_ADDR myIP, IP_ADDR subnet)
 
 }
 
-void SerialIPStack::set_gateway(IP_ADDR myIP)
+void Enc28J60IPStack::set_gateway(IP_ADDR myIP)
 {
   uip_ipaddr_t ipaddr;
   uip_ipaddr(ipaddr, myIP.a, myIP.b, myIP.c, myIP.d);
   uip_setdraddr(ipaddr);
 }
 
-void SerialIPStack::listen(uint16_t port)
+void Enc28J60IPStack::listen(uint16_t port)
 {
   uip_listen(HTONS(port));
 }
 
-void SerialIPStack::tick()
+void Enc28J60IPStack::tick()
 {
 	uip_len = slipdev_poll();
 	if(uip_len > 0) {
@@ -116,24 +116,24 @@ void SerialIPStack::tick()
 	}
 }
 
-void SerialIPStack::set_uip_callback(fn_uip_cb_t fn)
+void Enc28J60IPStack::set_uip_callback(fn_uip_cb_t fn)
 {
 	this->fn_uip_cb = fn;
 }
 
-void SerialIPStack::uip_callback()
+void Enc28J60IPStack::uip_callback()
 {
-	struct serialip_state *s = &(uip_conn->appstate);
-	//SerialIP.cur_conn = s;
+	struct enc28j60ip_state *s = &(uip_conn->appstate);
+	//Enc28J60IP.cur_conn = s;
 	if (this->fn_uip_cb) {
 		// The sketch wants to handle all uIP events itself, using uIP functions.
 		this->fn_uip_cb(s);//->p, &s->user);
 	} else {
 		// The sketch wants to use our simplified interface.
 		// This is still in the planning stage :-)
-		/*	struct serialip_state *s = &(uip_conn->appstate);
+		/*	struct Enc28J60IP_state *s = &(uip_conn->appstate);
 
-		SerialIP.cur_conn = s;
+		Enc28J60IP.cur_conn = s;
 
 		if (uip_connected()) {
 			s->obpos = 0;
@@ -142,7 +142,7 @@ void SerialIPStack::uip_callback()
 
 		if (uip_rexmit() && s->obpos) {
 			// Send the same buffer again
-			SerialIP.queue();
+			Enc28J60IP.queue();
 			//uip_send(this->send_buffer, this->bufpos);
 			return;
 		}
@@ -177,12 +177,12 @@ void SerialIPStack::uip_callback()
 	}
 }
 
-SerialIPStack SerialIP;
+Enc28J60IPStack Enc28J60IP;
 
 // uIP callback function
-void serialip_appcall(void)
+void Enc28J60IP_appcall(void)
 {
-	SerialIP.uip_callback();
+	Enc28J60IP.uip_callback();
 }
 
 
