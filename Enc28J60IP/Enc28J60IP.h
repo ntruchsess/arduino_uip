@@ -58,7 +58,6 @@ class Enc28J60IPStack {//: public Print {
 		Enc28J60IPStack();
 
 //		void use_device(SerialDevice& dev);
-		void attach_functions(unsigned char (*)(char *), void (*)(unsigned char));
 
 		void begin(IP_ADDR myIP, IP_ADDR subnet);
 		void set_gateway(IP_ADDR myIP);
@@ -108,7 +107,7 @@ class Enc28J60IPStack {//: public Print {
 		fn_uip_cb_t fn_uip_cb;
 		void uip_callback();
 
-	friend void Enc28J60IP_appcall(void);
+	friend void enc28j60ip_appcall(void);
 
 };
 

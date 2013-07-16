@@ -25,7 +25,7 @@
 extern "C" {
 #include "uip.h"
 #include "uip_arp.h"
-#include "slipdev.h"
+#include "network.h"
 #include "timer.h"
 }
 
@@ -48,21 +48,13 @@ void Enc28J60IPStack::use_device(SerialDevice& dev)
 */
 
 
-
-// This function allows you to attach any functions to chip-select the MMC card
-void Enc28J60IPStack::attach_functions( unsigned char (* rx)(char *), void (* tx)(unsigned char))
-{
-   attach_functs(rx,tx);
-}
-
-
 void Enc28J60IPStack::begin(IP_ADDR myIP, IP_ADDR subnet)
 {
 	uip_ipaddr_t ipaddr;
 
 	timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
 
-	slipdev_init();
+	network_init();
 	uip_init();
 
 	uip_ipaddr(ipaddr, myIP.a, myIP.b, myIP.c, myIP.d);
@@ -86,13 +78,13 @@ void Enc28J60IPStack::listen(uint16_t port)
 
 void Enc28J60IPStack::tick()
 {
-	uip_len = slipdev_poll();
+	uip_len = network_read();
 	if(uip_len > 0) {
 		uip_input();
 		// If the above function invocation resulted in data that
 		// should be sent out on the network, the global variable
 		// uip_len is set to a value > 0.
-		if (uip_len > 0) slipdev_send();
+		if (uip_len > 0) network_send();
 
 	} else if (timer_expired(&periodic_timer)) {
 		timer_reset(&periodic_timer);
@@ -101,7 +93,7 @@ void Enc28J60IPStack::tick()
 			// If the above function invocation resulted in data that
 			// should be sent out on the network, the global variable
 			// uip_len is set to a value > 0.
-			if (uip_len > 0) slipdev_send();
+			if (uip_len > 0) network_send();
 		}
 
 #if UIP_UDP
@@ -110,7 +102,7 @@ void Enc28J60IPStack::tick()
 			// If the above function invocation resulted in data that
 			// should be sent out on the network, the global variable
 			// uip_len is set to a value > 0. */
-			if (uip_len > 0) slipdev_send();
+			if (uip_len > 0) network_send();
 		}
 #endif /* UIP_UDP */
 	}
@@ -180,7 +172,7 @@ void Enc28J60IPStack::uip_callback()
 Enc28J60IPStack Enc28J60IP;
 
 // uIP callback function
-void Enc28J60IP_appcall(void)
+void enc28j60ip_appcall(void)
 {
 	Enc28J60IP.uip_callback();
 }
