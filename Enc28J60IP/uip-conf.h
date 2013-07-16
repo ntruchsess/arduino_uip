@@ -142,7 +142,6 @@ typedef unsigned short uip_stats_t;
 #include "utility/psock.h"
 typedef struct enc28j60ip_state {
   struct psock p;
-//  char inputbuffer[IP_INPUT_BUFFER_LENGTH];
   void *user;
 } uip_tcp_appstate_t;
 

@@ -29,6 +29,8 @@ extern "C" {
 #include "timer.h"
 }
 
+#define BUF ((struct uip_eth_hdr *)&uip_buf[0])
+
 // Because uIP isn't encapsulated within a class we have to use global
 // variables, so we can only have one TCP/IP stack per program.  But at least
 // we can set which serial port to use, for those boards with more than one.
@@ -79,12 +81,28 @@ void Enc28J60IPStack::listen(uint16_t port)
 void Enc28J60IPStack::tick()
 {
 	uip_len = network_read();
+
 	if(uip_len > 0) {
-		uip_input();
-		// If the above function invocation resulted in data that
-		// should be sent out on the network, the global variable
-		// uip_len is set to a value > 0.
-		if (uip_len > 0) network_send();
+		if(BUF->type == HTONS(UIP_ETHTYPE_IP)) {
+			uip_arp_ipin();
+			uip_input();
+			if(uip_len > 0) {
+				uip_arp_out();
+				network_send();
+			}
+		} else if(BUF->type == HTONS(UIP_ETHTYPE_ARP)) {
+			uip_arp_arpin();
+			if(uip_len > 0) {
+				network_send();
+			}
+		}
+
+//	if(uip_len > 0) {
+//		uip_input();
+//		// If the above function invocation resulted in data that
+//		// should be sent out on the network, the global variable
+//		// uip_len is set to a value > 0.
+//		if (uip_len > 0) network_send();
 
 	} else if (timer_expired(&periodic_timer)) {
 		timer_reset(&periodic_timer);
@@ -93,7 +111,10 @@ void Enc28J60IPStack::tick()
 			// If the above function invocation resulted in data that
 			// should be sent out on the network, the global variable
 			// uip_len is set to a value > 0.
-			if (uip_len > 0) network_send();
+			if (uip_len > 0) {
+				uip_arp_out();
+				network_send();
+			}
 		}
 
 #if UIP_UDP

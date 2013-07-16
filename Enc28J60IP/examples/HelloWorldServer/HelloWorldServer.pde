@@ -1,16 +1,16 @@
 /*
- * SerialIP Hello World example.
+ * Enc28J60IPIP Hello World example.
  *
- * SerialIP is a TCP/IP stack that can be used over a serial port (a bit
+ * Enc28J60IPIP is a TCP/IP stack that can be used over a serial port (a bit
  * like a dial-up Internet connection, but without the modem.)  It works with
  * stock Arduinos (no shields required.)  When attached to a PC supporting
  * SLIP, the Arduino can host network servers and access the Internet (if the
  * PC is configured to share its Internet connection of course!)
  *
- * SerialIP uses the fine uIP stack by Adam Dunkels <adam@sics.se>
+ * Enc28J60IPIP uses the fine uIP stack by Adam Dunkels <adam@sics.se>
  *
- * For more information see the SerialIP page on the Arduino wiki:
- *   <http://www.arduino.cc/playground/Code/SerialIP>
+ * For more information see the Enc28J60IPIP page on the Arduino wiki:
+ *   <http://www.arduino.cc/playground/Code/Enc28J60IPIP>
  *
  *      -----------------
  *
@@ -41,45 +41,37 @@
  * Ported to the Arduino IDE by Adam Nielsen <malvineous@shikadi.net>
  */
 
-#include <SerialIP.h>
+#include <Enc28J60IP.h>
 
 // The connection_data struct needs to be defined in an external file.
 #include "HelloWorldData.h"
 
 void setup() {
 
-  // Set up the speed of our serial link.
-  Serial.begin(115200);
-
-  // Tell SerialIP which serial port to use (some boards have more than one.)
-  // Currently this is limited to HardwareSerial ports, until both it and 
-  // SoftwareSerial inherit from a common base class.
-  SerialIP.use_device(Serial);
-
   // We're going to be handling uIP events ourselves.  Perhaps one day a simpler
   // interface will be implemented for the Arduino IDE, but until then...  
-  SerialIP.set_uip_callback(uip_callback);
+  Enc28J60IP.set_uip_callback(uip_callback);
 
   // Set the IP address we'll be using.  Make sure this doesn't conflict with
   // any IP addresses or subnets on your LAN or you won't be able to connect to
   // either the Arduino or your LAN...
   IP_ADDR myIP = {192,168,5,2};
   IP_ADDR subnet = {255,255,255,0};
-  SerialIP.begin(myIP, subnet);
+  Enc28J60IP.begin(myIP, subnet);
 
   // If you'll be making outgoing connections from the Arduino to the rest of
   // the world, you'll need a gateway set up.
   //IP_ADDR gwIP = {192,168,5,1};
-  //SerialIP.set_gateway(gwIP);
+  //Enc28J60IPIP.set_gateway(gwIP);
 
   // Listen for incoming connections on TCP port 1000.  Each incoming
   // connection will result in the uip_callback() function being called.
-  SerialIP.listen(1000);
+  Enc28J60IP.listen(1000);
 }
 
 void loop() {
   // Check the serial port and process any incoming data.
-  SerialIP.tick();
+  Enc28J60IP.tick();
 
   // We can do other things in the loop, but be aware that the loop will
   // briefly pause while IP data is being processed.
@@ -95,7 +87,7 @@ void uip_callback(uip_tcp_appstate_t *s)
     // definitions.)
     connection_data *d = (connection_data *)malloc(sizeof(connection_data));
 
-    // Save it as SerialIP user data so we can get to it later.
+    // Save it as Enc28J60IPIP user data so we can get to it later.
     s->user = d;
 
     // The protosocket's read functions need a per-connection buffer to store
