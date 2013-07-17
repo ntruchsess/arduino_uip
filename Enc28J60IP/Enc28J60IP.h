@@ -23,15 +23,24 @@
 
 #include <Arduino.h>
 
+#include "IPAddress.h"
+
 extern "C" {
 #include "utility/timer.h"
 #include "utility/uip.h"
 }
 
-typedef struct {
-	int a, b, c, d;
-} IP_ADDR;
+#define uip_ip_addr(addr, ip) do { \
+                     ((u16_t *)(addr))[0] = HTONS(((ip[0]) << 8) | (ip[1])); \
+                     ((u16_t *)(addr))[1] = HTONS(((ip[2]) << 8) | (ip[3])); \
+                  } while(0)
 
+#define uip_seteth_addr(eaddr) do {uip_ethaddr.addr[0] = eaddr[0]; \
+                              uip_ethaddr.addr[1] = eaddr[1];\
+                              uip_ethaddr.addr[2] = eaddr[2];\
+                              uip_ethaddr.addr[3] = eaddr[3];\
+                              uip_ethaddr.addr[4] = eaddr[4];\
+                              uip_ethaddr.addr[5] = eaddr[5];} while(0)
 /*
 #define IP_INCOMING_CONNECTION  0
 #define IP_CONNECTION_CLOSED    1
@@ -57,10 +66,12 @@ class Enc28J60IPStack {//: public Print {
 	public:
 		Enc28J60IPStack();
 
-//		void use_device(SerialDevice& dev);
+		void begin(const uint8_t* mac);
+		void begin(const uint8_t* mac,IPAddress ip);
+		void begin(const uint8_t* mac,IPAddress ip, IPAddress dns);
+		void begin(const uint8_t* mac,IPAddress ip, IPAddress dns, IPAddress gateway);
+		void begin(const uint8_t* mac,IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
 
-		void begin(IP_ADDR myIP, IP_ADDR subnet);
-		void set_gateway(IP_ADDR myIP);
 		void listen(uint16_t port);
 
 		// tick() must be called at regular intervals to process the incoming serial

@@ -1,44 +1,21 @@
 /*
- * Enc28J60IPIP Hello World example.
+ * Enc28J60IP Hello World example.
  *
- * Enc28J60IPIP is a TCP/IP stack that can be used over a serial port (a bit
- * like a dial-up Internet connection, but without the modem.)  It works with
- * stock Arduinos (no shields required.)  When attached to a PC supporting
- * SLIP, the Arduino can host network servers and access the Internet (if the
- * PC is configured to share its Internet connection of course!)
+ * Enc28J60IP is a TCP/IP stack that can be used with a enc28j60 based
+ * Ethernet-shield.
  *
- * Enc28J60IPIP uses the fine uIP stack by Adam Dunkels <adam@sics.se>
- *
- * For more information see the Enc28J60IPIP page on the Arduino wiki:
- *   <http://www.arduino.cc/playground/Code/Enc28J60IPIP>
+ * Enc28J60IP uses the fine uIP stack by Adam Dunkels <adam@sics.se>
  *
  *      -----------------
  *
- * This Hello World example sets up a server at 192.168.5.2 on port 1000.
+ * This Hello World example sets up a server at 192.168.1.6 on port 1000.
  * Telnet here to access the service.  The uIP stack will also respond to
- * pings to test if you have successfully established a SLIP connection to
+ * pings to test if you have successfully established a TCP connection to
  * the Arduino.
- *
- * SLIP connection set up under Linux:
- *
- *  # modprobe slip
- *  # slattach -L -s 115200 -p slip /dev/ttyUSB0     (see note below)
- *  # ifconfig sl0 192.168.5.1 dstaddr 192.168.5.2
- *
- *  # ping 192.168.5.2
- *  # telnet 192.168.5.2 1000
- *
- * Here 192.168.5.1 is the address you will give to your PC, and it must be
- * unique on your LAN.  192.168.5.2 is the IP you will give the Arduino.  It
- * must also be unique, and must match the address the Arduino is expecting
- * as set by the "myIP" variable below.
- *
- * Note that slattach won't return so you'll need to run ifconfig from
- * another terminal.  You can press Ctrl+C to kill slattach and release the
- * serial port, e.g. to upload another sketch.
  *
  * This example was based upon uIP hello-world by Adam Dunkels <adam@sics.se>
  * Ported to the Arduino IDE by Adam Nielsen <malvineous@shikadi.net>
+ * Adaption to Enc28J60 by Norbert Truchsess <norbert.truchsess@t-online.de>
  */
 
 #include <Enc28J60IP.h>
@@ -55,9 +32,11 @@ void setup() {
   // Set the IP address we'll be using.  Make sure this doesn't conflict with
   // any IP addresses or subnets on your LAN or you won't be able to connect to
   // either the Arduino or your LAN...
-  IP_ADDR myIP = {192,168,1,6};
-  IP_ADDR subnet = {255,255,255,0};
-  Enc28J60IP.begin(myIP, subnet);
+
+  uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
+  IPAddress myIP(192,168,1,6);
+
+  Enc28J60IP.begin(mac,myIP);
 
   // If you'll be making outgoing connections from the Arduino to the rest of
   // the world, you'll need a gateway set up.

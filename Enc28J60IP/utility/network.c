@@ -11,7 +11,7 @@ void network_send(void){
 	enc28j60PacketSend(uip_len, (uint8_t *)uip_buf);
 }
 
-void network_init_mac(uint8_t* macaddr)
+void network_init_mac(const uint8_t* macaddr)
 {
 	//Initialise the device
 	enc28j60Init(macaddr);

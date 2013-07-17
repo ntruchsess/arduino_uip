@@ -39,31 +39,46 @@ Enc28J60IPStack::Enc28J60IPStack() :
 {
 }
 
+void Enc28J60IPStack::begin(const uint8_t* mac) {
 
-void Enc28J60IPStack::begin(IP_ADDR myIP, IP_ADDR subnet)
-{
+}
+
+void Enc28J60IPStack::begin(const uint8_t* mac, IPAddress ip) {
+  IPAddress dns = ip;
+  dns[3] = 1;
+  begin(mac, ip, dns);
+}
+
+void Enc28J60IPStack::begin(const uint8_t* mac, IPAddress ip, IPAddress dns) {
+  IPAddress gateway = ip;
+  gateway[3] = 1;
+  begin(mac, ip, dns, gateway);
+}
+
+void Enc28J60IPStack::begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway) {
+  IPAddress subnet(255,255,255,0);
+  begin(mac,ip,dns,gateway,subnet);
+}
+
+void Enc28J60IPStack::begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet) {
+
 	uip_ipaddr_t ipaddr;
 
 	timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
 
-	uip_eth_addr eth = {{0x00,0x01,0x02,0x03,0x04,0x05}};
-	network_init_mac(eth.addr);
-	uip_setethaddr(eth);
+	network_init_mac(mac);
+	uip_seteth_addr(mac);
 
 	uip_init();
 
-	uip_ipaddr(ipaddr, myIP.a, myIP.b, myIP.c, myIP.d);
+	uip_ip_addr(ipaddr,ip);
 	uip_sethostaddr(ipaddr);
-	uip_ipaddr(ipaddr, subnet.a, subnet.b, subnet.c, subnet.d);
+
+	uip_ip_addr(ipaddr,gateway);
+	uip_setdraddr(ipaddr);
+
+	uip_ip_addr(ipaddr,subnet);
 	uip_setnetmask(ipaddr);
-
-}
-
-void Enc28J60IPStack::set_gateway(IP_ADDR myIP)
-{
-  uip_ipaddr_t ipaddr;
-  uip_ipaddr(ipaddr, myIP.a, myIP.b, myIP.c, myIP.d);
-  uip_setdraddr(ipaddr);
 }
 
 void Enc28J60IPStack::listen(uint16_t port)

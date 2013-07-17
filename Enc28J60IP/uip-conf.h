@@ -77,15 +77,13 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
-//#define UIP_CONF_MAX_CONNECTIONS 40
-#define UIP_CONF_MAX_CONNECTIONS 12
+#define UIP_CONF_MAX_CONNECTIONS 4
 
 /**
  * Maximum number of listening TCP ports.
  *
  * \hideinitializer
  */
-//#define UIP_CONF_MAX_LISTENPORTS 40
 #define UIP_CONF_MAX_LISTENPORTS 4
 
 /**
@@ -93,7 +91,6 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
-//#define UIP_CONF_BUFFER_SIZE     420
 #define UIP_CONF_BUFFER_SIZE     200
 
 /**
@@ -135,18 +132,15 @@ typedef unsigned short uip_stats_t;
 //#define UIP_CONF_LLH_LEN 0
 
 
-#define IP_INPUT_BUFFER_LENGTH 16
-#define IP_OUTPUT_BUFFER_LENGTH 16
-
 #include "utility/psock.h"
+
 typedef struct enc28j60ip_state {
   struct psock p;
   void *user;
 } uip_tcp_appstate_t;
 
 void enc28j60ip_appcall(void);
+
 #define UIP_APPCALL enc28j60ip_appcall
 
 #endif /* __UIP_CONF_H__ */
-
-/** @} */

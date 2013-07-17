@@ -8,9 +8,6 @@ The wrapper library is based on the SerialIP implementation by Adam Nielsen <mal
 uIP was written by Adam Dunkels of the Networked Embedded Systems group at the 
 Swedish Institute of Computer Science.
 
-For set up guides and troubleshooting, visit the SerialIP page on the Arduino 
-wiki: http://www.arduino.cc/playground/Code/SerialIP
-
 For more information visit:
 
  - uIP API reference:

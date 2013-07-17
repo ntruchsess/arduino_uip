@@ -11,7 +11,7 @@
 void network_init(void);
 
 /*Initialize the network with a mac addr*/
-void network_init_mac(uint8_t* macaddr);
+void network_init_mac(const uint8_t* macaddr);
 
 /*Read from the network, returns number of read bytes*/
 uint16_t network_read(void);
