@@ -1,7 +1,9 @@
-This is SerialIP version 1.0, a wrapper library around uIP, which provides the 
-Arduino with TCP/IP connectivity over its built-in serial port.
+This is Enc28J60IP version 1.0, a wrapper library around uIP, which provides the 
+Arduino with TCP/IP connectivity for the enc28j60 ethernet chip.
 
-The wrapper library was written by Adam Nielsen <malvineous@shikadi.net>
+This library is written by Norbert Truchsess <norbert.truchsess@t-online.de>
+
+The wrapper library is based on the SerialIP implementation by Adam Nielsen <malvineous@shikadi.net>
 
 uIP was written by Adam Dunkels of the Networked Embedded Systems group at the 
 Swedish Institute of Computer Science.
