@@ -14,7 +14,7 @@ void network_init(void);
 void network_init_mac(uint8_t* macaddr);
 
 /*Read from the network, returns number of read bytes*/
-unsigned int network_read(void);
+uint16_t network_read(void);
 
 /*Send using the network*/
 void network_send(void);

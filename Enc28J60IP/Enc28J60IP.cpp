@@ -29,31 +29,19 @@ extern "C" {
 #include "timer.h"
 }
 
-#define BUF ((struct uip_eth_hdr *)&uip_buf[0])
+#define ETH_HDR ((struct uip_eth_hdr *)&uip_buf[0])
 
 // Because uIP isn't encapsulated within a class we have to use global
-// variables, so we can only have one TCP/IP stack per program.  But at least
-// we can set which serial port to use, for those boards with more than one.
-//SerialDevice *slip_device;
+// variables, so we can only have one TCP/IP stack per program.
 
 Enc28J60IPStack::Enc28J60IPStack() :
 	fn_uip_cb(NULL)
 {
 }
 
-/*
-void Enc28J60IPStack::use_device(SerialDevice& dev)
-{
-	::slip_device = &dev;
-}
-
-*/
-
 
 void Enc28J60IPStack::begin(IP_ADDR myIP, IP_ADDR subnet)
 {
-  Serial.begin(9600);
-  Serial.println("begin");
 	uip_ipaddr_t ipaddr;
 
 	timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
@@ -80,7 +68,6 @@ void Enc28J60IPStack::set_gateway(IP_ADDR myIP)
 
 void Enc28J60IPStack::listen(uint16_t port)
 {
-  Serial.println("listen");
   uip_listen(HTONS(port));
 }
 
@@ -89,28 +76,19 @@ void Enc28J60IPStack::tick()
 	uip_len = network_read();
 
 	if(uip_len > 0) {
-		if(BUF->type == HTONS(UIP_ETHTYPE_IP)) {
-		    Serial.println("type ip");
+		if(ETH_HDR->type == HTONS(UIP_ETHTYPE_IP)) {
 			uip_arp_ipin();
 			uip_input();
 			if(uip_len > 0) {
 				uip_arp_out();
 				network_send();
 			}
-		} else if(BUF->type == HTONS(UIP_ETHTYPE_ARP)) {
-		    Serial.println("type arp");
+		} else if(ETH_HDR->type == HTONS(UIP_ETHTYPE_ARP)) {
 			uip_arp_arpin();
 			if(uip_len > 0) {
 				network_send();
 			}
 		}
-
-//	if(uip_len > 0) {
-//		uip_input();
-//		// If the above function invocation resulted in data that
-//		// should be sent out on the network, the global variable
-//		// uip_len is set to a value > 0.
-//		if (uip_len > 0) network_send();
 
 	} else if (timer_expired(&periodic_timer)) {
 		timer_reset(&periodic_timer);
@@ -131,7 +109,9 @@ void Enc28J60IPStack::tick()
 			// If the above function invocation resulted in data that
 			// should be sent out on the network, the global variable
 			// uip_len is set to a value > 0. */
-			if (uip_len > 0) network_send();
+			if (uip_len > 0) {
+			    network_send();
+			}
 		}
 #endif /* UIP_UDP */
 	}
@@ -206,13 +186,75 @@ void enc28j60ip_appcall(void)
 	Enc28J60IP.uip_callback();
 }
 
-
-
-/*
- * Code to interface the serial port with the SLIP handler.
- *
- * See slipdev.h for further explanation.
- */
-
-//extern SerialDevice *slip_device;
+//void uip_log(char *msg) {
+//  Serial.println(msg);
+//}
+//
+//#include <stdarg.h>
+//
+//void debugprintf(char *fmt, ... ){
+//        char tmp[128]; // resulting string limited to 128 chars
+//        va_list args;
+//        va_start (args, fmt );
+//        vsnprintf(tmp, 128, fmt, args);
+//        va_end (args);
+//        Serial.print(tmp);
+//}
+//
+//void printStats(void) {
+//  Serial.print("ip:\ndrop: ");
+//  Serial.println(uip_stat.ip.drop);
+//  Serial.print("recv: ");
+//  Serial.println(uip_stat.ip.recv);
+//  Serial.print("sent: ");
+//  Serial.println(uip_stat.ip.sent);
+//  Serial.print("vhlerr: ");
+//  Serial.println(uip_stat.ip.vhlerr);
+//  Serial.print("hblenerr: ");
+//  Serial.println(uip_stat.ip.hblenerr);
+//  Serial.print("lblenerr: ");
+//  Serial.println(uip_stat.ip.lblenerr);
+//  Serial.print("fragerr: ");
+//  Serial.println(uip_stat.ip.fragerr);
+//  Serial.print("chkerr: ");
+//  Serial.println(uip_stat.ip.chkerr);
+//  Serial.print("protoerr: ");
+//  Serial.println(uip_stat.ip.protoerr);
+//  Serial.print("icmp:\ndrop: ");
+//  Serial.println(uip_stat.icmp.drop);
+//  Serial.print("recv: ");
+//  Serial.println(uip_stat.icmp.recv);
+//  Serial.print("sent: ");
+//  Serial.println(uip_stat.icmp.sent);
+//  Serial.print("typeerr: ");
+//  Serial.println(uip_stat.icmp.typeerr);
+//  Serial.print("tcp:\ndrop: ");
+//  Serial.println(uip_stat.tcp.drop);
+//  Serial.print("recv: ");
+//  Serial.println(uip_stat.tcp.drop);
+//  Serial.print("sent: ");
+//  Serial.println(uip_stat.tcp.sent);
+//  Serial.print("chkerr: ");
+//  Serial.println(uip_stat.tcp.chkerr);
+//  Serial.print("ackerr: ");
+//  Serial.println(uip_stat.tcp.ackerr);
+//  Serial.print("rst: ");
+//  Serial.println(uip_stat.tcp.rst);
+//  Serial.print("rexmit: ");
+//  Serial.println(uip_stat.tcp.rexmit);
+//  Serial.print("syndrop: ");
+//  Serial.println(uip_stat.tcp.syndrop);
+//  Serial.print("synrst: ");
+//  Serial.println(uip_stat.tcp.synrst);
+//  #if UIP_UDP
+//  Serial.print("udp:\ndrop: ");
+//  Serial.println(uip_stat.udp.drop);
+//  Serial.print("recv: ");
+//  Serial.println(uip_stat.udp.recv);
+//  Serial.print("sent: ");
+//  Serial.println(uip_stat.udp.sent);
+//  Serial.print("chkerr: ");
+//  Serial.println(uip_stat.udp.chkerr);
+//  #endif /* UIP_UDP */
+//}
 

@@ -270,7 +270,7 @@ uint8_t enc28j60getrev(void)
 	return(enc28j60Read(EREVID));
 }
 
-void enc28j60PacketSend(uint16_t len, uint8_t* packet, uint16_t appdata_len, uint8_t* appdata)
+void enc28j60PacketSend(uint16_t len, uint8_t* packet)
 {
 	// Set the write pointer to start of transmit buffer area
 	enc28j60Write(EWRPTL, TXSTART_INIT&0xFF);
@@ -282,7 +282,6 @@ void enc28j60PacketSend(uint16_t len, uint8_t* packet, uint16_t appdata_len, uin
 	enc28j60WriteOp(ENC28J60_WRITE_BUF_MEM, 0, 0x00);
 	// copy the packet into the transmit buffer
 	enc28j60WriteBuffer(len, packet);
-	if(appdata_len>0) enc28j60WriteBuffer(appdata_len, appdata);
 	// send the contents of the transmit buffer onto the network
 	enc28j60WriteOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
         // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
