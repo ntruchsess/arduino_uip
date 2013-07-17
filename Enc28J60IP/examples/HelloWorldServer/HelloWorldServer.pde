@@ -55,7 +55,7 @@ void setup() {
   // Set the IP address we'll be using.  Make sure this doesn't conflict with
   // any IP addresses or subnets on your LAN or you won't be able to connect to
   // either the Arduino or your LAN...
-  IP_ADDR myIP = {192,168,5,2};
+  IP_ADDR myIP = {192,168,1,6};
   IP_ADDR subnet = {255,255,255,0};
   Enc28J60IP.begin(myIP, subnet);
 
@@ -79,6 +79,7 @@ void loop() {
 
 void uip_callback(uip_tcp_appstate_t *s)
 {
+  Serial.println("callback");
   if (uip_connected()) {
 
     // We want to store some data in our connections, so allocate some space

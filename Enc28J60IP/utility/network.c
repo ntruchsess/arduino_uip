@@ -15,16 +15,16 @@ void network_send(void){
 	}
 }
 
-void network_init(void)
+void network_init_mac(uint8_t* macaddr)
 {
 	//Initialise the device
-	enc28j60Init();
+	enc28j60Init(macaddr);
 
 	//Configure leds
 	enc28j60PhyWrite(PHLCON,0x476);
 }
 
-void network_get_MAC(u08* macaddr)
+void network_get_MAC(uint8_t* macaddr)
 {
 	// read MAC address registers
 	// NOTE: MAC address in ENC28J60 is byte-backward
@@ -36,7 +36,7 @@ void network_get_MAC(u08* macaddr)
 	*macaddr++ = enc28j60Read(MAADR0);
 }
 
-void network_set_MAC(u08* macaddr)
+void network_set_MAC(uint8_t* macaddr)
 {
 	// write MAC address
 	// NOTE: MAC address in ENC28J60 is byte-backward

@@ -272,7 +272,7 @@ extern void enc28j60Write(uint8_t address, uint8_t data);
 extern void enc28j60PhyWrite(uint8_t address, uint16_t data);
 extern void enc28j60clkout(uint8_t clk);
 extern void enc28j60Init(uint8_t* macaddr);
-extern void enc28j60PacketSend(uint16_t len, uint8_t* packet);
+extern void enc28j60PacketSend(uint16_t len, uint8_t* packet, uint16_t appdata_len, uint8_t* appdata);
 extern uint16_t enc28j60PacketReceive(uint16_t maxlen, uint8_t* packet);
 extern uint8_t enc28j60getrev(void);
 

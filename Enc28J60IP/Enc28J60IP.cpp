@@ -52,11 +52,14 @@ void Enc28J60IPStack::use_device(SerialDevice& dev)
 
 void Enc28J60IPStack::begin(IP_ADDR myIP, IP_ADDR subnet)
 {
+  Serial.begin(9600);
+  Serial.println("begin");
 	uip_ipaddr_t ipaddr;
 
 	timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
 
-	network_init();
+	uint8_t mac[] = {0x00,0x01,0x02,0x03,0x04,0x05};
+	network_init_mac(mac);
 	uip_init();
 
 	uip_ipaddr(ipaddr, myIP.a, myIP.b, myIP.c, myIP.d);
@@ -75,6 +78,7 @@ void Enc28J60IPStack::set_gateway(IP_ADDR myIP)
 
 void Enc28J60IPStack::listen(uint16_t port)
 {
+  Serial.println("listen");
   uip_listen(HTONS(port));
 }
 
@@ -84,6 +88,7 @@ void Enc28J60IPStack::tick()
 
 	if(uip_len > 0) {
 		if(BUF->type == HTONS(UIP_ETHTYPE_IP)) {
+		    Serial.println("type ip");
 			uip_arp_ipin();
 			uip_input();
 			if(uip_len > 0) {
@@ -91,6 +96,7 @@ void Enc28J60IPStack::tick()
 				network_send();
 			}
 		} else if(BUF->type == HTONS(UIP_ETHTYPE_ARP)) {
+		    Serial.println("type arp");
 			uip_arp_arpin();
 			if(uip_len > 0) {
 				network_send();
