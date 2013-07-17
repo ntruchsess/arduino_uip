@@ -58,8 +58,10 @@ void Enc28J60IPStack::begin(IP_ADDR myIP, IP_ADDR subnet)
 
 	timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
 
-	uint8_t mac[] = {0x00,0x01,0x02,0x03,0x04,0x05};
-	network_init_mac(mac);
+	uip_eth_addr eth = {{0x00,0x01,0x02,0x03,0x04,0x05}};
+	network_init_mac(eth.addr);
+	uip_setethaddr(eth);
+
 	uip_init();
 
 	uip_ipaddr(ipaddr, myIP.a, myIP.b, myIP.c, myIP.d);

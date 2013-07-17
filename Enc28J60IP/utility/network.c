@@ -1,4 +1,4 @@
-#include "global-conf.h"
+#include "uip.h"
 #include "enc28j60.h"
 #include <avr/io.h>
 #include <util/delay.h>
