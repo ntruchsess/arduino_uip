@@ -118,7 +118,7 @@ int handle_connection(uip_tcp_appstate_t *s, connection_data *d)
   // has allocated the connection_data structure for us to use instead.  (You
   // can add/remove other variables in this struct to store different data.
   // See the other file in this sketch, serialip_conn.h)
-  strncpy(d->name, d->input_buffer, sizeof(d->name));
+  strncpy(d->name, (char *)d->input_buffer, sizeof(d->name));
   // Note that this will misbehave when the input buffer overflows (i.e.
   // more than 16 characters are typed in) but hey, this is supposed to be
   // a simple example.  Fixing this problem will be left as an exercise for

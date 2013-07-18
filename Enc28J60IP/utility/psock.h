@@ -26,11 +26,15 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * This file is part of the uIP TCP/IP stack
+ * This file is part of the Contiki operating system.
  *
  * Author: Adam Dunkels <adam@sics.se>
  *
- * $Id: psock.h,v 1.3 2006/06/12 08:00:30 adam Exp $
+ */
+
+/**
+ * \addtogroup uip
+ * @{
  */
 
 /**
@@ -50,13 +54,14 @@
  * sequential control flow. This makes the protosockets lightweight in
  * terms of memory, but also means that protosockets inherits the
  * functional limitations of protothreads. Each protosocket lives only
- * within a single function. Automatic variables (stack variables) are
- * not retained across a protosocket library function call.
+ * within a single function block. Automatic variables (stack
+ * variables) are not necessarily retained across a protosocket
+ * library function call.
  *
- * \note Because the protosocket library uses protothreads, local
- * variables will not always be saved across a call to a protosocket
- * library function. It is therefore advised that local variables are
- * used with extreme care.
+ * \note Because the protosocket library uses protothreads, local variables
+ * will not always be saved across a call to a protosocket library
+ * function. It is therefore advised that local variables are used
+ * with extreme care.
  *
  * The protosocket library provides functions for sending data without
  * having to deal with retransmissions and acknowledgements, as well
@@ -81,7 +86,6 @@
 #ifndef __PSOCK_H__
 #define __PSOCK_H__
 
-#include "uipopt.h"
 #include "pt.h"
 
  /*
@@ -93,7 +97,7 @@
  *
  */
 struct psock_buf {
-  u8_t *ptr;
+  uint8_t *ptr;
   unsigned short left;
 };
 
@@ -107,14 +111,14 @@ struct psock {
   struct pt pt, psockpt; /* Protothreads - one that's using the psock
 			    functions, and one that runs inside the
 			    psock functions. */
-  const u8_t *sendptr;   /* Pointer to the next data to be sent. */
-  u8_t *readptr;         /* Pointer to the next data to be read. */
+  const uint8_t *sendptr;   /* Pointer to the next data to be sent. */
+  uint8_t *readptr;         /* Pointer to the next data to be read. */
   
-  char *bufptr;          /* Pointer to the buffer used for buffering
+  uint8_t *bufptr;          /* Pointer to the buffer used for buffering
 			    incoming data. */
   
-  u16_t sendlen;         /* The number of bytes left to be sent. */
-  u16_t readlen;         /* The number of bytes left to be read. */
+  uint16_t sendlen;         /* The number of bytes left to be sent. */
+  uint16_t readlen;         /* The number of bytes left to be read. */
 
   struct psock_buf buf;  /* The structure holding the state of the
 			    input buffer. */
@@ -123,7 +127,7 @@ struct psock {
   unsigned char state;   /* The state of the protosocket. */
 };
 
-void psock_init(struct psock *psock, char *buffer, unsigned int buffersize);
+void psock_init(struct psock *psock, uint8_t *buffer, unsigned int buffersize);
 /**
  * Initialize a protosocket.
  *
@@ -134,7 +138,7 @@ void psock_init(struct psock *psock, char *buffer, unsigned int buffersize);
  * \param psock (struct psock *) A pointer to the protosocket to be
  * initialized
  *
- * \param buffer (char *) A pointer to the input buffer for the
+ * \param buffer (uint8_t *) A pointer to the input buffer for the
  * protosocket.
  *
  * \param buffersize (unsigned int) The size of the input buffer.
@@ -157,7 +161,7 @@ void psock_init(struct psock *psock, char *buffer, unsigned int buffersize);
  */
 #define PSOCK_BEGIN(psock) PT_BEGIN(&((psock)->pt))
 
-PT_THREAD(psock_send(struct psock *psock, const char *buf, unsigned int len));
+PT_THREAD(psock_send(struct psock *psock, const uint8_t *buf, unsigned int len));
 /**
  * Send data.
  *
@@ -168,7 +172,7 @@ PT_THREAD(psock_send(struct psock *psock, const char *buf, unsigned int len));
  * \param psock (struct psock *) A pointer to the protosocket over which
  * data is to be sent.
  *
- * \param data (char *) A pointer to the data that is to be sent.
+ * \param data (uint8_t *) A pointer to the data that is to be sent.
  *
  * \param datalen (unsigned int) The length of the data that is to be
  * sent.
@@ -189,7 +193,7 @@ PT_THREAD(psock_send(struct psock *psock, const char *buf, unsigned int len));
  * \hideinitializer
  */
 #define PSOCK_SEND_STR(psock, str)      		\
-    PT_WAIT_THREAD(&((psock)->pt), psock_send(psock, str, strlen(str)))
+  PT_WAIT_THREAD(&((psock)->pt), psock_send(psock, (uint8_t *)str, strlen(str)))
 
 PT_THREAD(psock_generator_send(struct psock *psock,
 				unsigned short (*f)(void *), void *arg));
@@ -234,7 +238,7 @@ PT_THREAD(psock_generator_send(struct psock *psock,
  */
 #define PSOCK_CLOSE(psock) uip_close()
 
-PT_THREAD(psock_readbuf(struct psock *psock));
+PT_THREAD(psock_readbuf_len(struct psock *psock, uint16_t len));
 /**
  * Read data until the buffer is full.
  *
@@ -248,7 +252,24 @@ PT_THREAD(psock_readbuf(struct psock *psock));
  * \hideinitializer
  */
 #define PSOCK_READBUF(psock)				\
-  PT_WAIT_THREAD(&((psock)->pt), psock_readbuf(psock))
+  PT_WAIT_THREAD(&((psock)->pt), psock_readbuf_len(psock, 1))
+
+
+/**
+ * Read data until at least len bytes have been read.
+ *
+ * This macro will block waiting for data and read the data into the
+ * input buffer specified with the call to PSOCK_INIT(). Data is read
+ * until the buffer is full or len bytes have been read.
+ *
+ * \param psock (struct psock *) A pointer to the protosocket from which
+ * data should be read.
+ * \param len (uint16_t) The minimum number of bytes to read.
+ *
+ * \hideinitializer
+ */
+#define PSOCK_READBUF_LEN(psock, len)			\
+  PT_WAIT_THREAD(&((psock)->pt), psock_readbuf_len(psock, len))
 
 PT_THREAD(psock_readto(struct psock *psock, unsigned char c));
 /**
@@ -256,7 +277,7 @@ PT_THREAD(psock_readto(struct psock *psock, unsigned char c));
  *
  * This macro will block waiting for data and read the data into the
  * input buffer specified with the call to PSOCK_INIT(). Data is only
- * read until the specifieed character appears in the data stream.
+ * read until the specified character appears in the data stream.
  *
  * \param psock (struct psock *) A pointer to the protosocket from which
  * data should be read.
@@ -280,7 +301,7 @@ PT_THREAD(psock_readto(struct psock *psock, unsigned char c));
  */
 #define PSOCK_DATALEN(psock) psock_datalen(psock)
 
-u16_t psock_datalen(struct psock *psock);
+uint16_t psock_datalen(struct psock *psock);
 
 /**
  * Exit the protosocket's protothread.
@@ -352,7 +373,7 @@ char psock_newdata(struct psock *s);
  {
    PSOCK_BEGIN(s);
 
-   PSOCK_WAIT_UNTIL(s, PSOCK_NEWADATA(s) || timer_expired(t));
+   PSOCK_WAIT_UNTIL(s, PSOCK_NEWDATA(s) || timer_expired(t));
    
    if(PSOCK_NEWDATA(s)) {
      PSOCK_READTO(s, '\n');
@@ -377,4 +398,5 @@ char psock_newdata(struct psock *s);
 
 #endif /* __PSOCK_H__ */
 
+/** @} */
 /** @} */

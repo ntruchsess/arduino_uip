@@ -143,4 +143,6 @@ void enc28j60ip_appcall(void);
 
 #define UIP_APPCALL enc28j60ip_appcall
 
+#define CC_REGISTER_ARG register
+
 #endif /* __UIP_CONF_H__ */

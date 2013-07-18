@@ -1,5 +1,5 @@
 /*
- * SerialIP Hello World example.
+ * Enc28J60IP Hello World example.
  *
  * This file contains the definition of the per-connection data that will be
  * allocated on each incoming connection.  Unfortunately it has to be in a
@@ -14,6 +14,6 @@
  */
 
 typedef struct {
-  char input_buffer[16];
+  uint8_t input_buffer[16];
   char name[20];
 } connection_data;
