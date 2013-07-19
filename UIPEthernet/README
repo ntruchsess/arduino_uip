@@ -1,4 +1,4 @@
-This is Enc28J60IP version 1.0, a wrapper library around uIP, which provides the 
+This is UIPEthernet version 1.0, a wrapper library around uIP, which provides the 
 Arduino with TCP/IP connectivity for the enc28j60 ethernet chip.
 
 This library is written by Norbert Truchsess <norbert.truchsess@t-online.de>
@@ -9,6 +9,9 @@ uIP was written by Adam Dunkels of the Networked Embedded Systems group at the
 Swedish Institute of Computer Science.
 
 For more information visit:
+
+ - UIPEthernet Repository on github:
+    https://github.com/ntruchsess/arduino_uip
 
  - uIP API reference:
     http://www.sics.se/~adam/uip/uip-1.0-refman/

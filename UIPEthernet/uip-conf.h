@@ -1,5 +1,6 @@
 /**
- * \name Project-specific configuration options
+ * UIPEthernet Project-specific configuration options
+ * Copyright (c) 2013 Norbert Truchsess <norbert.truchsess@t-online.de>
  * @{
  *
  * uIP has a number of configuration options that can be overridden
@@ -91,7 +92,7 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
-#define UIP_CONF_BUFFER_SIZE     200
+#define UIP_CONF_BUFFER_SIZE     118
 
 /**
  * CPU byte order.
@@ -134,14 +135,14 @@ typedef unsigned short uip_stats_t;
 
 #include "utility/psock.h"
 
-typedef struct enc28j60ip_state {
+typedef struct uipethernet_state {
   struct psock p;
   void *user;
 } uip_tcp_appstate_t;
 
-void enc28j60ip_appcall(void);
+void uipethernet_appcall(void);
 
-#define UIP_APPCALL enc28j60ip_appcall
+#define UIP_APPCALL uipethernet_appcall
 
 #define CC_REGISTER_ARG register
 

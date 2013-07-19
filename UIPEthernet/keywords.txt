@@ -6,8 +6,9 @@
 # Datatypes (KEYWORD1)
 #######################################
 
-SerialIP	KEYWORD1
-IP_ADDR	KEYWORD1
+UIPEthernet KEYWORD1
+UIPServer KEYWORD1
+UIPClient KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
