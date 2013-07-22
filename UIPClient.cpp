@@ -305,9 +305,9 @@ UIPClient::handle_connection(uip_tcp_appstate_t *s)
 
   PSOCK_BEGIN(p);
 
-    if (readyToReceive(s))
+    if (uip_newdata() && readyToReceive(s))
       {
-        PSOCK_READBUF_LEN(p, 0);
+        PSOCK_READBUF_LEN(p, 0); //TODO check what happens when there's more new data incoming than space left in UIPClients buffer (most likely this is just discarded, isn't it?)
         dataReceived(s);
       }
 
