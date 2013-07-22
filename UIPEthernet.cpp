@@ -119,7 +119,7 @@ UIPEthernetClass::tick()
         }
 
     }
-  else if (timer_expired(&periodic_timer))
+  if (timer_expired(&periodic_timer))
     {
       timer_reset(&periodic_timer);
       for (int i = 0; i < UIP_CONNS; i++)
