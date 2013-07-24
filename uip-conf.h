@@ -113,7 +113,9 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
-#define UIP_CONF_UDP             0
+#define UIP_CONF_UDP             1
+
+#define UIP_CONF_UDP_CONNS       4
 
 /**
  * UDP checksums on or off
@@ -143,6 +145,16 @@ typedef struct uipethernet_state {
 void uipethernet_appcall(void);
 
 #define UIP_APPCALL uipethernet_appcall
+
+typedef struct uipudp_state {
+  uint8_t *user;
+  int pos;
+  int len;
+} uip_udp_appstate_t;
+
+void uipudp_appcall(void);
+
+#define UIP_UDP_APPCALL uipudp_appcall
 
 #define CC_REGISTER_ARG register
 

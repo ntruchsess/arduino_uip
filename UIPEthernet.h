@@ -49,8 +49,7 @@ typedef void
 (*fn_uip_cb_t)(uip_tcp_appstate_t *conn);
 
 typedef void
-(*fn_my_cb_t)(unsigned long a);
-extern fn_my_cb_t x;
+(*fn_uip_udp_cb_t)(uip_udp_appstate_t *conn);
 
 class UIPEthernetClass
 {
@@ -72,15 +71,21 @@ public:
   // callback function can only use uIP functions, but it can also use uIP's
   // protosockets.
   void set_uip_callback(fn_uip_cb_t fn);
+  void set_uip_udp_callback(fn_uip_udp_cb_t fn);
 
 private:
   struct timer periodic_timer;
   struct UIPEthernet_state *cur_conn; // current connection (for print etc.)
   fn_uip_cb_t fn_uip_cb;
+  fn_uip_udp_cb_t fn_uip_udp_cb;
+
   void uip_callback();
 
   friend void uipethernet_appcall(void);
 
+  void uip_udp_callback();
+
+  friend void uipudp_appcall(void);
 };
 
 extern UIPEthernetClass UIPEthernet;

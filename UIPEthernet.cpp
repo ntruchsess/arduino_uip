@@ -169,6 +169,24 @@ UIPEthernetClass::uip_callback()
     }
 }
 
+void
+UIPEthernetClass::set_uip_udp_callback(fn_uip_udp_cb_t fn)
+{
+  this->fn_uip_udp_cb = fn;
+}
+
+void
+UIPEthernetClass::uip_udp_callback()
+{
+  struct uipudp_state *s = &(uip_udp_conn->appstate);
+
+  if (this->fn_uip_udp_cb)
+    {
+      // The sketch wants to handle all uIP events itself, using uIP functions.
+      this->fn_uip_udp_cb(s);                       //->p, &s->user);
+    }
+}
+
 UIPEthernetClass UIPEthernet;
 
 // uIP callback function
@@ -177,3 +195,9 @@ uipethernet_appcall(void)
 {
   UIPEthernet.uip_callback();
 }
+
+void
+uipudp_appcall(void) {
+  UIPEthernet.uip_udp_callback();
+}
+
