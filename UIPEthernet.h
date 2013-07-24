@@ -64,17 +64,15 @@ public:
   void begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway);
   void begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
 
+  // maintain() must be called at regular intervals to process the incoming serial
+  // data and issue IP events to the sketch.  It does not return until all IP
+  // events have been processed. Renews dhcp-lease if required.
   int maintain();
 
   IPAddress localIP();
   IPAddress subnetMask();
   IPAddress gatewayIP();
   IPAddress dnsServerIP();
-
-  // tick() must be called at regular intervals to process the incoming serial
-  // data and issue IP events to the sketch.  It does not return until all IP
-  // events have been processed.
-  void tick();
 
   // Set a user function to handle raw uIP events as they happen.  The
   // callback function can only use uIP functions, but it can also use uIP's
@@ -91,6 +89,11 @@ private:
   fn_uip_cb_t fn_uip_cb;
   fn_uip_udp_cb_t fn_uip_udp_cb;
 
+  void init(const uint8_t* mac);
+  void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
+
+  void tick();
+
   void uip_callback();
 
   friend void uipethernet_appcall(void);
@@ -98,6 +101,12 @@ private:
   void uip_udp_callback();
 
   friend void uipudp_appcall(void);
+
+  friend class UIPServer;
+
+  friend class UIPClient;
+
+  friend class UIPUDP;
 };
 
 extern UIPEthernetClass UIPEthernet;

@@ -47,15 +47,8 @@ UIPEthernetClass::begin(const uint8_t* mac)
   static DhcpClass s_dhcp;
   _dhcp = &s_dhcp;
 
-  uip_ipaddr_t ipaddr;
-
   // Initialise the basic info
-  timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
-
-  network_init_mac(mac);
-  uip_seteth_addr(mac);
-
-  uip_init();
+  init(mac);
 
   // Now try to get our config info from a DHCP server
   int ret = _dhcp->beginWithDHCP((uint8_t*)mac);
@@ -63,16 +56,7 @@ UIPEthernetClass::begin(const uint8_t* mac)
   {
     // We've successfully found a DHCP server and got our configuration info, so set things
     // accordingly
-    uip_ip_addr(ipaddr, _dhcp->getLocalIp());
-    uip_sethostaddr(ipaddr);
-
-    uip_ip_addr(ipaddr, _dhcp->getGatewayIp());
-    uip_setdraddr(ipaddr);
-
-    uip_ip_addr(ipaddr, _dhcp->getSubnetMask());
-    uip_setnetmask(ipaddr);
-
-    _dnsServerAddress = _dhcp->getDnsServerIp();
+    configure(_dhcp->getLocalIp(),_dhcp->getDnsServerIp(),_dhcp->getGatewayIp(),_dhcp->getSubnetMask());
   }
   return ret;
 }
@@ -103,24 +87,31 @@ UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddre
 void
 UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet)
 {
+  init(mac);
+  configure(ip,dns,gateway,subnet);
+}
 
-  uip_ipaddr_t ipaddr;
-
-  timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
-
-  network_init_mac(mac);
-  uip_seteth_addr(mac);
-
-  uip_init();
-
-  uip_ip_addr(ipaddr, ip);
-  uip_sethostaddr(ipaddr);
-
-  uip_ip_addr(ipaddr, gateway);
-  uip_setdraddr(ipaddr);
-
-  uip_ip_addr(ipaddr, subnet);
-  uip_setnetmask(ipaddr);
+int UIPEthernetClass::maintain(){
+  tick();
+  int rc = DHCP_CHECK_NONE;
+  if(_dhcp != NULL){
+    //we have a pointer to dhcp, use it
+    rc = _dhcp->checkLease();
+    switch ( rc ){
+      case DHCP_CHECK_NONE:
+        //nothing done
+        break;
+      case DHCP_CHECK_RENEW_OK:
+      case DHCP_CHECK_REBIND_OK:
+        //we might have got a new IP.
+        configure(_dhcp->getLocalIp(),_dhcp->getDnsServerIp(),_dhcp->getGatewayIp(),_dhcp->getSubnetMask());
+        break;
+      default:
+        //this is actually a error, it will retry though
+        break;
+    }
+  }
+  return rc;
 }
 
 IPAddress UIPEthernetClass::localIP()
@@ -212,6 +203,30 @@ UIPEthernetClass::tick()
         }
 #endif /* UIP_UDP */
     }
+}
+
+void UIPEthernetClass::init(const uint8_t* mac) {
+  timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
+
+  network_init_mac(mac);
+  uip_seteth_addr(mac);
+
+  uip_init();
+}
+
+void UIPEthernetClass::configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet) {
+  uip_ipaddr_t ipaddr;
+
+  uip_ip_addr(ipaddr, ip);
+  uip_sethostaddr(ipaddr);
+
+  uip_ip_addr(ipaddr, gateway);
+  uip_setdraddr(ipaddr);
+
+  uip_ip_addr(ipaddr, subnet);
+  uip_setnetmask(ipaddr);
+
+  _dnsServerAddress = dns;
 }
 
 void
