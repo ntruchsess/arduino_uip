@@ -211,7 +211,7 @@ UIPUDP::remoteIP()
   if (_uip_udp_conn)
     {
       uint16_t *a = (uint16_t *) &_uip_udp_conn->ripaddr;
-      return IPAddress(a[0] >> 8, a[0] & 0xFF, a[1] >> 8 , a[1] & 0xFF); //TODO this is not IPV6 capable
+      return ip_addr_uip(a);
     }
   return IPAddress((uint32_t)0);
 }

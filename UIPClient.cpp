@@ -26,6 +26,7 @@ extern "C"
 }
 #include "UIPClient.h"
 #include "UIPEthernet.h"
+#include "Dns.h"
 
 UIPClient::UIPClient() :
     _uip_conn(NULL)
@@ -50,7 +51,18 @@ UIPClient::connect(IPAddress ip, uint16_t port)
 int
 UIPClient::connect(const char *host, uint16_t port)
 {
-  return 0; //TODO implement use of dns
+  // Look up the host first
+  int ret = 0;
+  DNSClient dns;
+  IPAddress remote_addr;
+
+  dns.begin(UIPEthernet.dnsServerIP());
+  ret = dns.getHostByName(host, remote_addr);
+  if (ret == 1) {
+    return connect(remote_addr, port);
+  } else {
+    return ret;
+  }
 }
 
 int

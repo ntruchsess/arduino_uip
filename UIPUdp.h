@@ -38,7 +38,9 @@
 #define UIPUDP_H
 
 #include <Udp.h>
-#include "uip.h";
+extern "C" {
+  #include "utility/uip.h";
+}
 
 #define UDP_TX_PACKET_MAX_SIZE 24
 

@@ -22,8 +22,10 @@
 #define UIPCLIENT_H
 
 #import "Client.h"
-#import "utility/uip.h"
-#import "utility/psock.h"
+extern "C" {
+  #import "utility/uip.h"
+  #import "utility/psock.h"
+}
 
 #define UIP_SOCKET_BUFFER_SIZE 64
 typedef uint8_t uip_socket_ptr;

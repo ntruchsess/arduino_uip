@@ -19,7 +19,9 @@
  */
 #include "UIPEthernet.h"
 #include "UIPServer.h"
-#include "uip-conf.h"
+extern "C" {
+  #include "uip-conf.h"
+}
 
 UIPServer::UIPServer(uint16_t port) : _port(HTONS(port)) {
 

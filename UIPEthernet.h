@@ -24,7 +24,7 @@
 #define UIPETHERNET_H
 
 #include <Arduino.h>
-
+#include "Dhcp.h"
 #include "IPAddress.h"
 
 extern "C"
@@ -37,6 +37,8 @@ extern "C"
                      ((u16_t *)(addr))[0] = HTONS(((ip[0]) << 8) | (ip[1])); \
                      ((u16_t *)(addr))[1] = HTONS(((ip[2]) << 8) | (ip[3])); \
                   } while(0)
+
+#define ip_addr_uip(a) IPAddress(a[0] >> 8, a[0] & 0xFF, a[1] >> 8 , a[1] & 0xFF); //TODO this is not IPV6 capable
 
 #define uip_seteth_addr(eaddr) do {uip_ethaddr.addr[0] = eaddr[0]; \
                               uip_ethaddr.addr[1] = eaddr[1];\
@@ -56,11 +58,18 @@ class UIPEthernetClass
 public:
   UIPEthernetClass();
 
-  void begin(const uint8_t* mac);
+  int begin(const uint8_t* mac);
   void begin(const uint8_t* mac, IPAddress ip);
   void begin(const uint8_t* mac, IPAddress ip, IPAddress dns);
   void begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway);
   void begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
+
+  int maintain();
+
+  IPAddress localIP();
+  IPAddress subnetMask();
+  IPAddress gatewayIP();
+  IPAddress dnsServerIP();
 
   // tick() must be called at regular intervals to process the incoming serial
   // data and issue IP events to the sketch.  It does not return until all IP
@@ -74,6 +83,9 @@ public:
   void set_uip_udp_callback(fn_uip_udp_cb_t fn);
 
 private:
+  IPAddress _dnsServerAddress;
+  DhcpClass* _dhcp;
+
   struct timer periodic_timer;
   struct UIPEthernet_state *cur_conn; // current connection (for print etc.)
   fn_uip_cb_t fn_uip_cb;
