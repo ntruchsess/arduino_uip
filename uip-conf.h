@@ -148,8 +148,9 @@ void uipethernet_appcall(void);
 
 typedef struct uipudp_state {
   uint8_t *user;
-  int pos;
-  int len;
+  uint8_t pos; //current position in user buffer
+  uint8_t len; //length of user buffer
+  uint16_t remain; //bytes remaining in nic
 } uip_udp_appstate_t;
 
 void uipudp_appcall(void);

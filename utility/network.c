@@ -1,10 +1,21 @@
+#include "network.h"
 #include "uip.h"
 #include "enc28j60.h"
 #include <avr/io.h>
 #include <util/delay.h>
 
-uint16_t network_read(void){
-	return ((uint16_t) enc28j60PacketReceive(UIP_BUFSIZE, (uint8_t *)uip_buf));
+uint16_t network_read_start(void){
+  return enc28j60PacketReceiveStart();
+}
+
+uint16_t
+network_read_next(uint16_t len, uint8_t * buf)
+{
+  return enc28j60PacketReceiveNext(len, buf);
+}
+
+void network_read_end(void){
+  enc28j60PacketReceiveEnd();
 }
 
 void network_send(void){

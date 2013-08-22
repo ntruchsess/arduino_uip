@@ -85,9 +85,10 @@ private:
   DhcpClass* _dhcp;
 
   struct timer periodic_timer;
-  struct UIPEthernet_state *cur_conn; // current connection (for print etc.)
   fn_uip_cb_t fn_uip_cb;
   fn_uip_udp_cb_t fn_uip_udp_cb;
+  uint16_t packetlen;
+  bool packetstream;
 
   void init(const uint8_t* mac);
   void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);

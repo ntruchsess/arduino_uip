@@ -149,59 +149,67 @@ IPAddress UIPEthernetClass::dnsServerIP()
 void
 UIPEthernetClass::tick()
 {
-  uip_len = network_read();
-
-  if (uip_len > 0)
+  if (!packetstream)
     {
-      if (ETH_HDR ->type == HTONS(UIP_ETHTYPE_IP))
+      packetlen = network_read_start();
+      if (packetlen > 0)
         {
-          uip_arp_ipin();
-          uip_input();
-          if (uip_len > 0)
+          uip_len = network_read_next(UIP_BUFSIZE, (uint8_t *)uip_buf);
+          if (ETH_HDR ->type == HTONS(UIP_ETHTYPE_IP))
             {
-              uip_arp_out();
-              network_send();
+              uip_arp_ipin();
+              uip_input();
+              if (packetstream)
+                {
+                  return;
+                }
+              network_read_end();
+              if (uip_len > 0)
+                {
+                  uip_arp_out();
+                  network_send();
+                }
+            }
+          else if (ETH_HDR ->type == HTONS(UIP_ETHTYPE_ARP))
+            {
+              network_read_end();
+              uip_arp_arpin();
+              if (uip_len > 0)
+                {
+                  network_send();
+                }
             }
         }
-      else if (ETH_HDR ->type == HTONS(UIP_ETHTYPE_ARP))
+      if (timer_expired(&periodic_timer))
         {
-          uip_arp_arpin();
-          if (uip_len > 0)
+          timer_reset(&periodic_timer);
+          for (int i = 0; i < UIP_CONNS; i++)
             {
-              network_send();
+              uip_periodic(i);
+              // If the above function invocation resulted in data that
+              // should be sent out on the network, the global variable
+              // uip_len is set to a value > 0.
+              if (uip_len > 0)
+                {
+                  uip_arp_out();
+                  network_send();
+                }
             }
-        }
 
-    }
-  if (timer_expired(&periodic_timer))
-    {
-      timer_reset(&periodic_timer);
-      for (int i = 0; i < UIP_CONNS; i++)
-        {
-          uip_periodic(i);
-          // If the above function invocation resulted in data that
-          // should be sent out on the network, the global variable
-          // uip_len is set to a value > 0.
-          if (uip_len > 0)
+    #if UIP_UDP
+          for (int i = 0; i < UIP_UDP_CONNS; i++)
             {
-              uip_arp_out();
-              network_send();
+              uip_udp_periodic(i);
+              // If the above function invocation resulted in data that
+              // should be sent out on the network, the global variable
+              // uip_len is set to a value > 0. */
+              if (uip_len > 0)
+                {
+                  network_send();
+                }
             }
+    #endif /* UIP_UDP */
         }
-
-#if UIP_UDP
-      for (int i = 0; i < UIP_UDP_CONNS; i++)
-        {
-          uip_udp_periodic(i);
-          // If the above function invocation resulted in data that
-          // should be sent out on the network, the global variable
-          // uip_len is set to a value > 0. */
-          if (uip_len > 0)
-            {
-              network_send();
-            }
-        }
-#endif /* UIP_UDP */
     }
 }
 

@@ -13,8 +13,14 @@ void network_init(void);
 /*Initialize the network with a mac addr*/
 void network_init_mac(const uint8_t* macaddr);
 
+/*Check for new packet, returns size of packet (if any). Returns 0 otherwise */
+uint16_t network_read_start(void);
+
 /*Read from the network, returns number of read bytes*/
-uint16_t network_read(void);
+uint16_t network_read_next(uint16_t len, uint8_t *uip_buf);
+
+/*finish reading of packet.*/
+void network_read_end(void);
 
 /*Send using the network*/
 void network_send(void);
