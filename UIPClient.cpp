@@ -143,7 +143,14 @@ UIPClient::write(const uint8_t *buf, size_t size)
 size_t
 UIPClient::_write(struct uip_conn*, const uint8_t *buf, size_t size)
 {
-  return 0; //TODO implement this!
+  // Do this in a more efficient way
+
+  size_t position;
+  for(position = 0; position < size; ++position)
+  {
+    if(_write(uip_conn, buf[position]) != 1) return position;
+  }
+  return position;
 }
 
 int
