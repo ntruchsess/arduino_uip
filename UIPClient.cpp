@@ -68,7 +68,16 @@ UIPClient::connect(const char *host, uint16_t port)
 int
 UIPClient::read(uint8_t *buf, size_t size)
 {
-  return 0; //TODO implement read to buffer
+  // TODO: Use a more efficient way to do this
+
+  size_t position;
+  for(position = 0; position <= size; ++position)
+  {
+    int read_byte = this->read();
+    if(read_byte == -1) return position;
+    else buf[position] = (uint8_t) read_byte;
+  }
+  return position;
 }
 
 void
