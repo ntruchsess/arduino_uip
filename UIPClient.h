@@ -56,6 +56,7 @@ public:
   int available();
   int read();
   int peek();
+  int peek(size_t);
   void flush();
   static void uip_callback(uip_tcp_appstate_t *s);
 

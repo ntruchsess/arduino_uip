@@ -189,13 +189,19 @@ UIPClient::read()
 int
 UIPClient::peek()
 {
+  return this->peek(0);
+}
+
+int
+UIPClient::peek(size_t position)
+{
   uip_userdata_t *u;
   UIPEthernet.tick();
   if (_uip_conn && (u = (uip_userdata_t *) (((uip_tcp_appstate_t) _uip_conn->appstate).user)))
     {
-      if (u->in_len == u->in_pos)
+      if (u->in_len <= (u->in_pos + position))
         return -1;
-      return u->in_buffer[u->in_pos];
+      return u->in_buffer[u->in_pos + position];
     }
   return -1;
 }
