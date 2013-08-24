@@ -90,7 +90,7 @@ void enc28j60ReadBuffer(uint16_t len, uint8_t* data)
                 *data = SPDR;
                 data++;
         }
-        *data='\0';
+        //*data='\0';
         CSPASSIVE;
 }
 
@@ -343,8 +343,8 @@ uint16_t enc28j60PacketReceiveNext(uint16_t maxlen, uint8_t* packet)
         uint16_t len = remaining;
         if (len>0) {
                 // limit retrieve length
-                if (len>maxlen-1){
-                          len=maxlen-1;
+                if (len>maxlen){
+                          len=maxlen;
                 }
                 // copy the packet from the receive buffer
                 enc28j60ReadBuffer(len, packet);

@@ -213,6 +213,58 @@ UIPEthernetClass::tick()
     }
 }
 
+void UIPEthernetClass::stream_packet()
+{
+  packetstream = true;
+  left = UIP_BUFSIZE-((u8_t*)uip_appdata)-&uip_buf[0];
+  remain = packetlen-UIP_BUFSIZE+left;
+}
+
+void UIPEthernetClass::stream_packet_end()
+{
+  packetstream = false;
+  remain = 0;
+  network_read_end();
+}
+
+int UIPEthernetClass::read(unsigned char* buffer, size_t len)
+{
+  int retlen = len > remain ? remain : len;
+  for (int tocopy = retlen;;tocopy > 0)
+    {
+      if (tocopy > left)
+        {
+          memcpy(buffer+retlen-tocopy,uip_buf+UIP_BUFSIZE-left,left);
+          tocopy -= left;
+          remain -= left;
+          network_read_next(UIP_BUFSIZE,uip_buf);
+          left = UIP_BUFSIZE;
+        }
+      else
+        {
+          memcpy(buffer+retlen-tocopy,uip_buf+UIP_BUFSIZE-tocopy,tocopy);
+          left -= tocopy;
+          remain -= tocopy;
+          if (left == 0 && remain > 0)
+            {
+              network_read_next(UIP_BUFSIZE,uip_buf);
+              left = UIP_BUFSIZE;
+            }
+          break;
+        }
+    }
+  return retlen;
+}
+
+int UIPEthernetClass::peek()
+{
+  if (remain > 0)
+    {
+      return uip_buf[UIP_BUFSIZE-left];
+    }
+  return -1;
+}
+
 void UIPEthernetClass::init(const uint8_t* mac) {
   timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
 

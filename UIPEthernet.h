@@ -88,7 +88,14 @@ private:
   fn_uip_cb_t fn_uip_cb;
   fn_uip_udp_cb_t fn_uip_udp_cb;
   uint16_t packetlen;
+  uint16_t remain;
+  uint8_t left;
   bool packetstream;
+
+  void stream_packet();
+  void stream_packet_end();
+  int read(unsigned char* buffer, size_t len);
+  int UIPEthernetClass::peek();
 
   void init(const uint8_t* mac);
   void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
