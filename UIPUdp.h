@@ -42,13 +42,21 @@ extern "C" {
   #include "utility/uip.h";
 }
 
-#define UDP_TX_PACKET_MAX_SIZE 24
+#define UDP_PACKET_IN 1
+#define UDP_PACKET_OUT 2
 
 class UIPUDP : public UDP
 {
 
 private:
   struct uip_udp_conn *_uip_udp_conn;
+
+  struct appdata_t
+  {
+    uint8_t mode;
+    uint16_t rport;
+    IPAddress ripaddr;
+  } appdata;
 
 public:
   UIPUDP();  // Constructor

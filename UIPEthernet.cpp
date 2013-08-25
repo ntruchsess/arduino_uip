@@ -22,10 +22,10 @@
 
 #include <Arduino.h>
 #include "UIPEthernet.h"
-#include "uip-conf.h"
 
 extern "C"
 {
+#include "uip-conf.h"
 #include "uip.h"
 #include "uip_arp.h"
 #include "network.h"
@@ -119,8 +119,7 @@ IPAddress UIPEthernetClass::localIP()
   IPAddress ret;
   uip_ipaddr_t a;
   uip_gethostaddr(a);
-  ret = ip_addr_uip(a);
-  return ret;
+  return ip_addr_uip(a);
 }
 
 IPAddress UIPEthernetClass::subnetMask()
@@ -128,8 +127,7 @@ IPAddress UIPEthernetClass::subnetMask()
   IPAddress ret;
   uip_ipaddr_t a;
   uip_getnetmask(a);
-  ret = ip_addr_uip(a);
-  return ret;
+  return ip_addr_uip(a);
 }
 
 IPAddress UIPEthernetClass::gatewayIP()
@@ -137,8 +135,7 @@ IPAddress UIPEthernetClass::gatewayIP()
   IPAddress ret;
   uip_ipaddr_t a;
   uip_getdraddr(a);
-  ret = ip_addr_uip(a);
-  return ret;
+  return ip_addr_uip(a);
 }
 
 IPAddress UIPEthernetClass::dnsServerIP()
@@ -149,7 +146,7 @@ IPAddress UIPEthernetClass::dnsServerIP()
 void
 UIPEthernetClass::tick()
 {
-  if (!packetstream)
+  if (packetstream == 0)
     {
       packetlen = network_read_start();
       if (packetlen > 0)
@@ -159,7 +156,7 @@ UIPEthernetClass::tick()
             {
               uip_arp_ipin();
               uip_input();
-              if (packetstream)
+              if (packetstream > 0)
                 {
                   return;
                 }
@@ -196,56 +193,56 @@ UIPEthernetClass::tick()
                 }
             }
 
-    #if UIP_UDP
-          for (int i = 0; i < UIP_UDP_CONNS; i++)
-            {
-              uip_udp_periodic(i);
-              // If the above function invocation resulted in data that
-              // should be sent out on the network, the global variable
-              // uip_len is set to a value > 0. */
-              if (uip_len > 0)
-                {
-                  network_send();
-                }
-            }
-    #endif /* UIP_UDP */
+//    #if UIP_UDP
+//          for (int i = 0; i < UIP_UDP_CONNS; i++)
+//            {
+//              uip_udp_periodic(i);
+//              // If the above function invocation resulted in data that
+//              // should be sent out on the network, the global variable
+//              // uip_len is set to a value > 0. */
+//              if (uip_len > 0)
+//                {
+//                  network_send();
+//                }
+//            }
+//    #endif /* UIP_UDP */
         }
     }
 }
 
-void UIPEthernetClass::stream_packet()
+void UIPEthernetClass::stream_packet_read_start()
 {
-  packetstream = true;
-  left = UIP_BUFSIZE-((u8_t*)uip_appdata)-&uip_buf[0];
-  remain = packetlen-UIP_BUFSIZE+left;
+  packetstream = UIP_STREAM_READ;
+  left = UIP_BUFSIZE-hdrlen;
+  num = packetlen-UIP_BUFSIZE+left;
 }
 
-void UIPEthernetClass::stream_packet_end()
+void UIPEthernetClass::stream_packet_read_end()
 {
-  packetstream = false;
-  remain = 0;
+  packetstream = 0;
+  num = 0;
   network_read_end();
 }
 
-int UIPEthernetClass::read(unsigned char* buffer, size_t len)
+int UIPEthernetClass::stream_packet_read(unsigned char* buffer, size_t len)
 {
-  int retlen = len > remain ? remain : len;
+  int retlen = len > num ? num : len;
   for (int tocopy = retlen;;tocopy > 0)
     {
       if (tocopy > left)
         {
           memcpy(buffer+retlen-tocopy,uip_buf+UIP_BUFSIZE-left,left);
           tocopy -= left;
-          remain -= left;
+          num -= left;
           network_read_next(UIP_BUFSIZE,uip_buf);
           left = UIP_BUFSIZE;
         }
       else
         {
-          memcpy(buffer+retlen-tocopy,uip_buf+UIP_BUFSIZE-tocopy,tocopy);
+          memcpy(buffer+retlen-tocopy,uip_buf+UIP_BUFSIZE-left,tocopy);
           left -= tocopy;
-          remain -= tocopy;
-          if (left == 0 && remain > 0)
+          num -= tocopy;
+          if (left == 0 && num > 0)
             {
               network_read_next(UIP_BUFSIZE,uip_buf);
               left = UIP_BUFSIZE;
@@ -256,13 +253,33 @@ int UIPEthernetClass::read(unsigned char* buffer, size_t len)
   return retlen;
 }
 
-int UIPEthernetClass::peek()
+int UIPEthernetClass::stream_packet_peek()
 {
-  if (remain > 0)
+  if (num > 0)
     {
       return uip_buf[UIP_BUFSIZE-left];
     }
   return -1;
+}
+
+void UIPEthernetClass::stream_packet_write_start()
+{
+  packetstream = UIP_STREAM_WRITE;
+  num = 0;
+  network_send_start();
+  network_send_next(hdrlen,uip_buf);
+}
+
+void UIPEthernetClass::stream_packet_write_end()
+{
+  packetstream = 0;
+  network_send_end(hdrlen,uip_buf);
+}
+
+void UIPEthernetClass::stream_packet_write(unsigned char* buffer, size_t len)
+{
+  network_send_next(len,buffer);
+  num += len;
 }
 
 void UIPEthernetClass::init(const uint8_t* mac) {

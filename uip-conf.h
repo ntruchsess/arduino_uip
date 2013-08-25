@@ -147,10 +147,7 @@ void uipethernet_appcall(void);
 #define UIP_APPCALL uipethernet_appcall
 
 typedef struct uipudp_state {
-  uint8_t *user;
-  uint8_t pos; //current position in user buffer
-  uint8_t len; //length of user buffer
-  uint16_t remain; //bytes remaining in nic
+  void *user;
 } uip_udp_appstate_t;
 
 void uipudp_appcall(void);

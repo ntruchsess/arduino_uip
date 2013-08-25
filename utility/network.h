@@ -22,8 +22,17 @@ uint16_t network_read_next(uint16_t len, uint8_t *uip_buf);
 /*finish reading of packet.*/
 void network_read_end(void);
 
-/*Send using the network*/
+/*Send uip_buf using the network*/
 void network_send(void);
+
+/*Prepare sending a packet*/
+void network_send_start(void);
+
+/*Write packet data*/
+void network_send_next(uint16_t len, uint8_t *buf);
+
+/*Send using the network, optionally rewriting the headers*/
+void network_send_end(uint16_t len, uint8_t *buf);
 
 /*Sets the MAC address of the device*/
 void network_set_MAC(uint8_t* mac);

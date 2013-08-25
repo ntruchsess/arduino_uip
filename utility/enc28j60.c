@@ -31,6 +31,7 @@
 static uint8_t Enc28j60Bank;
 static uint16_t NextPacketPtr;
 static uint16_t remaining;
+static uint16_t written;
 
 #define ENC28J60_CONTROL_CS     10
 #define SPI_MOSI				11
@@ -271,18 +272,33 @@ uint8_t enc28j60getrev(void)
 	return(enc28j60Read(EREVID));
 }
 
-void enc28j60PacketSend(uint16_t len, uint8_t* packet)
+void enc28j60PacketSendReset()
 {
 	// Set the write pointer to start of transmit buffer area
 	enc28j60Write(EWRPTL, TXSTART_INIT&0xFF);
 	enc28j60Write(EWRPTH, TXSTART_INIT>>8);
-	// Set the TXND pointer to correspond to the packet size given
-	enc28j60Write(ETXNDL, (TXSTART_INIT+len)&0xFF);
-	enc28j60Write(ETXNDH, (TXSTART_INIT+len)>>8);
 	// write per-packet control byte (0x00 means use macon3 settings)
 	enc28j60WriteOp(ENC28J60_WRITE_BUF_MEM, 0, 0x00);
-	// copy the packet into the transmit buffer
+}
+
+void enc28j60PacketSendStart()
+{
+        enc28j60PacketSendReset();
+	written = 0;
+}
+
+void enc28j60PacketSendNext(uint16_t len, uint8_t* packet)
+{
+        // copy the packet into the transmit buffer
 	enc28j60WriteBuffer(len, packet);
+	written += len;
+}
+
+void enc28j60PacketSendEnd()
+{
+        // Set the TXND pointer to correspond to the packet size given
+        enc28j60Write(ETXNDL, (TXSTART_INIT+written)&0xFF);
+        enc28j60Write(ETXNDH, (TXSTART_INIT+written)>>8);
 	// send the contents of the transmit buffer onto the network
 	enc28j60WriteOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
         // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
