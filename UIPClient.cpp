@@ -43,8 +43,7 @@ UIPClient::connect(IPAddress ip, uint16_t port)
 {
   uip_ipaddr_t ipaddr;
   uip_ip_addr(ipaddr, ip);
-  _uip_conn = uip_connect(&ipaddr, port);
-  UIPEthernet.tick();
+  _uip_conn = uip_connect(&ipaddr, htons(port));
   return _uip_conn ? 1 : 0;
 }
 
@@ -75,7 +74,7 @@ void
 UIPClient::stop()
 {
   uip_userdata_t *u;
-  if (_uip_conn && (u = (uip_userdata_t *) (((uip_tcp_appstate_t) _uip_conn->appstate).user)))
+  if (_uip_conn && (u = (uip_userdata_t *)_uip_conn->appstate.user))
     {
       u->close = true;
     }
@@ -91,7 +90,8 @@ UIPClient::connected()
 
 UIPClient::operator bool()
 {
-  return _uip_conn;
+  UIPEthernet.tick();
+  return _uip_conn && _uip_conn->appstate.user;
 }
 
 size_t
@@ -105,7 +105,7 @@ UIPClient::_write(struct uip_conn* conn, uint8_t c)
 {
   uip_userdata_t *u;
   if (conn
-      && (u = (uip_userdata_t *) (((uip_tcp_appstate_t) conn->appstate).user)))
+      && (u = (uip_userdata_t *)conn->appstate.user))
     {
       if (u->out_pos == UIP_SOCKET_BUFFER_SIZE)
         {
@@ -132,9 +132,11 @@ UIPClient::write(const uint8_t *buf, size_t size)
 }
 
 size_t
-UIPClient::_write(struct uip_conn*, const uint8_t *buf, size_t size)
+UIPClient::_write(struct uip_conn* conn, const uint8_t *buf, size_t size)
 {
-  return 0; //TODO implement this!
+  size_t i=0; //TODO implement this using memcpy?
+  while(i < size && _write(conn,buf[i++]) > 0);
+  return i;
 }
 
 int
@@ -160,7 +162,7 @@ UIPClient::read()
 {
   uip_userdata_t *u;
   UIPEthernet.tick();
-  if (_uip_conn && (u = (uip_userdata_t *) (((uip_tcp_appstate_t) _uip_conn->appstate).user)))
+  if (_uip_conn && (u = (uip_userdata_t *)_uip_conn->appstate.user))
     {
       if (u->in_len == u->in_pos)
         return -1;
@@ -175,7 +177,7 @@ UIPClient::peek()
 {
   uip_userdata_t *u;
   UIPEthernet.tick();
-  if (_uip_conn && (u = (uip_userdata_t *) (((uip_tcp_appstate_t) _uip_conn->appstate).user)))
+  if (_uip_conn && (u = (uip_userdata_t *)_uip_conn->appstate.user))
     {
       if (u->in_len == u->in_pos)
         return -1;

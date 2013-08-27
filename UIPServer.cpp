@@ -23,7 +23,7 @@ extern "C" {
   #include "uip-conf.h"
 }
 
-UIPServer::UIPServer(uint16_t port) : _port(HTONS(port)) {
+UIPServer::UIPServer(uint16_t port) : _port(htons(port)) {
 
 }
 
