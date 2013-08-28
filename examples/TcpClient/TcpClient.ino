@@ -1,5 +1,5 @@
 /*
- * UIPEthernet EchoServer example.
+ * UIPEthernet TcpClient example.
  *
  * UIPEthernet is a TCP/IP stack that can be used with a enc28j60 based
  * Ethernet-shield.
@@ -8,19 +8,16 @@
  *
  *      -----------------
  *
- * This Hello World example sets up a server at 192.168.1.6 on port 1000.
- * Telnet here to access the service.  The uIP stack will also respond to
- * pings to test if you have successfully established a TCP connection to
- * the Arduino.
+ * This TcpClient example sets up a local ip-address 192.168.0.6 and sets
+ * up a tcp socket-connection to 192.168.0.1 port 5000 every 5 Seconds.
+ * After sending a message it waits for a response. After receiving the
+ * response the client disconnects and tries to reconnect after 5 seconds.
  *
- * This example was based upon uIP hello-world by Adam Dunkels <adam@sics.se>
- * Ported to the Arduino IDE by Adam Nielsen <malvineous@shikadi.net>
- * Adaption to Enc28J60 by Norbert Truchsess <norbert.truchsess@t-online.de>
+ * Copyright (C) 2013 by Norbert Truchsess <norbert.truchsess@t-online.de>
  */
 
 #include <UIPEthernet.h>
 // The connection_data struct needs to be defined in an external file.
-#include <UIPServer.h>
 #include <UIPClient.h>
 
 UIPClient client;
@@ -45,6 +42,7 @@ void loop() {
       next = millis() + 5000;
       if (client.connect(IPAddress(192,168,0,1),5000))
         {
+          //wait for the client to connect or time out after 5 sec
           while(!client)
             {
               if (((signed long)(millis()-next)) > 0)
@@ -57,6 +55,7 @@ void loop() {
           client.println(msg);
           String response = client.readString();
           Serial.println(response);
+          //disconnect client
           client.stop();
         }
     }
