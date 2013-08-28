@@ -23,7 +23,8 @@
 #include <UIPServer.h>
 #include <UIPClient.h>
 
-UIPServer server = UIPServer(1000);
+UIPClient client;
+unsigned long next;
 
 void setup() {
 
@@ -31,23 +32,32 @@ void setup() {
 
   UIPEthernet.set_uip_callback(&UIPClient::uip_callback);
 
-  uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
-  IPAddress myIP(192,168,0,6);
+  uint8_t mac[] = {0x00,0x01,0x02,0x03,0x04,0x05};
+  UIPEthernet.begin(mac,IPAddress (192,168,0,6));
 
-  UIPEthernet.begin(mac,myIP);
-
-  server.begin();
+  next = 0;
 }
 
 void loop() {
 
-  if (UIPClient client = server.available()) {
-    if (client) {
-      while (client.available()) {
-        int c = client.read();
-        Serial.write(c);
-        client.write(c);
-      }
+  if (((signed long)(millis() - next)) > 0)
+    {
+      next = millis() + 5000;
+      if (client.connect(IPAddress(192,168,0,1),5000))
+        {
+          while(!client)
+            {
+              if (((signed long)(millis()-next)) > 0)
+                {
+                  client.stop();
+                  return;
+                }
+            }
+          const char msg[] = "data from client\0";
+          client.println(msg);
+          String response = client.readString();
+          Serial.println(response);
+          client.stop();
+        }
     }
-  }
 }

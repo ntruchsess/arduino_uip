@@ -40,7 +40,7 @@ typedef struct uip_userdata {
   bool close;
 } uip_userdata_t;
 
-class UIPClient : Client {
+class UIPClient : public Client {
 
 public:
   UIPClient();

@@ -30,6 +30,8 @@
 
 static uint8_t Enc28j60Bank;
 static uint16_t NextPacketPtr;
+static uint16_t remaining;
+static uint16_t written;
 
 #define ENC28J60_CONTROL_CS     10
 #define SPI_MOSI				11
@@ -89,7 +91,7 @@ void enc28j60ReadBuffer(uint16_t len, uint8_t* data)
                 *data = SPDR;
                 data++;
         }
-        *data='\0';
+        //*data='\0';
         CSPASSIVE;
 }
 
@@ -270,18 +272,33 @@ uint8_t enc28j60getrev(void)
 	return(enc28j60Read(EREVID));
 }
 
-void enc28j60PacketSend(uint16_t len, uint8_t* packet)
+void enc28j60PacketSendReset()
 {
 	// Set the write pointer to start of transmit buffer area
 	enc28j60Write(EWRPTL, TXSTART_INIT&0xFF);
 	enc28j60Write(EWRPTH, TXSTART_INIT>>8);
-	// Set the TXND pointer to correspond to the packet size given
-	enc28j60Write(ETXNDL, (TXSTART_INIT+len)&0xFF);
-	enc28j60Write(ETXNDH, (TXSTART_INIT+len)>>8);
 	// write per-packet control byte (0x00 means use macon3 settings)
 	enc28j60WriteOp(ENC28J60_WRITE_BUF_MEM, 0, 0x00);
-	// copy the packet into the transmit buffer
+}
+
+void enc28j60PacketSendStart()
+{
+        enc28j60PacketSendReset();
+	written = 0;
+}
+
+void enc28j60PacketSendNext(uint16_t len, uint8_t* packet)
+{
+        // copy the packet into the transmit buffer
 	enc28j60WriteBuffer(len, packet);
+	written += len;
+}
+
+void enc28j60PacketSendEnd()
+{
+        // Set the TXND pointer to correspond to the packet size given
+        enc28j60Write(ETXNDL, (TXSTART_INIT+written)&0xFF);
+        enc28j60Write(ETXNDH, (TXSTART_INIT+written)>>8);
 	// send the contents of the transmit buffer onto the network
 	enc28j60WriteOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
         // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
@@ -290,55 +307,75 @@ void enc28j60PacketSend(uint16_t len, uint8_t* packet)
         }
 }
 
-// Gets a packet from the network receive buffer, if one is available.
-// The packet will by headed by an ethernet header.
-//      maxlen  The maximum acceptable length of a retrieved packet.
-//      packet  Pointer where packet data should be stored.
-// Returns: Packet length in bytes if a packet was retrieved, zero otherwise.
-uint16_t enc28j60PacketReceive(uint16_t maxlen, uint8_t* packet)
+// Checks whether a packet in the network receive buffer is available.
+// Returns: Packet length in bytes, zero otherwise.
+// call enc28j60PacketReceiveNext() to retrieve packet contents.
+uint16_t enc28j60PacketReceiveStart()
 {
-	uint16_t rxstat;
-	uint16_t len;
-	// check if a packet has been received and buffered
-	//if( !(enc28j60Read(EIR) & EIR_PKTIF) ){
+        uint16_t rxstat;
+        // check if a packet has been received and buffered
+        //if( !(enc28j60Read(EIR) & EIR_PKTIF) ){
         // The above does not work. See Rev. B4 Silicon Errata point 6.
-	if( enc28j60Read(EPKTCNT) ==0 ){
-		return(0);
+        if( enc28j60Read(EPKTCNT) ==0 ){
+                return(0);
         }
 
-	// Set the read pointer to the start of the received packet
-	enc28j60Write(ERDPTL, (NextPacketPtr));
-	enc28j60Write(ERDPTH, (NextPacketPtr)>>8);
-	// read the next packet pointer
-	NextPacketPtr  = enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0);
-	NextPacketPtr |= enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0)<<8;
-	// read the packet length (see datasheet page 43)
-	len  = enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0);
-	len |= enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0)<<8;
-        len-=4; //remove the CRC count
-	// read the receive status (see datasheet page 43)
-	rxstat  = enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0);
-	rxstat |= enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0)<<8;
-	// limit retrieve length
-        if (len>maxlen-1){
-                len=maxlen-1;
-        }
+        // Set the read pointer to the start of the received packet
+        enc28j60Write(ERDPTL, (NextPacketPtr));
+        enc28j60Write(ERDPTH, (NextPacketPtr)>>8);
+        // read the next packet pointer
+        NextPacketPtr  = enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0);
+        NextPacketPtr |= enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0)<<8;
+        // read the packet length (see datasheet page 43)
+        remaining  = enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0);
+        remaining |= enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0)<<8;
+        remaining-=4; //remove the CRC count
+        // read the receive status (see datasheet page 43)
+        rxstat  = enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0);
+        rxstat |= enc28j60ReadOp(ENC28J60_READ_BUF_MEM, 0)<<8;
         // check CRC and symbol errors (see datasheet page 44, table 7-3):
         // The ERXFCON.CRCEN is set by default. Normally we should not
         // need to check this.
         if ((rxstat & 0x80)==0){
                 // invalid
-                len=0;
-        }else{
+                remaining=0;
+                enc28j60PacketReceiveEnd();
+        }
+        return(remaining);
+}
+
+// Gets a packet from the network receive buffer, if one is available.
+// The packet will by headed by an ethernet header.
+// Call enc28j60PacketReceiveStart() to check for existence of packet first.
+// If Packet is longer than maxlen, call this function again to receive
+// remaining packet data until returnvalue is 0.
+//      maxlen  The maximum acceptable length of a retrieved packet.
+//      packet  Pointer where packet data should be stored.
+// Returns: number of bytes read from packet, zero if no data is left.
+// call enc28j60PacketReceiveEnd after receiving packet data to free
+// packet buffer.
+uint16_t enc28j60PacketReceiveNext(uint16_t maxlen, uint8_t* packet)
+{
+        uint16_t len = remaining;
+        if (len>0) {
+                // limit retrieve length
+                if (len>maxlen){
+                          len=maxlen;
+                }
                 // copy the packet from the receive buffer
                 enc28j60ReadBuffer(len, packet);
+                remaining -= len;
         }
-	// Move the RX read pointer to the start of the next received packet
-	// This frees the memory we just read out
-	enc28j60Write(ERXRDPTL, (NextPacketPtr));
-	enc28j60Write(ERXRDPTH, (NextPacketPtr)>>8);
-	// decrement the packet counter indicate we are done with this packet
-	enc28j60WriteOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
-	return(len);
+        return(len);
+}
+
+void enc28j60PacketReceiveEnd()
+{
+        // Move the RX read pointer to the start of the next received packet
+        // This frees the memory we just read out
+        enc28j60Write(ERXRDPTL, (NextPacketPtr));
+        enc28j60Write(ERXRDPTH, (NextPacketPtr)>>8);
+        // decrement the packet counter indicate we are done with this packet
+        enc28j60WriteOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
 }
 

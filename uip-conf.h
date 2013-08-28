@@ -147,9 +147,7 @@ void uipethernet_appcall(void);
 #define UIP_APPCALL uipethernet_appcall
 
 typedef struct uipudp_state {
-  uint8_t *user;
-  int pos;
-  int len;
+  void *user;
 } uip_udp_appstate_t;
 
 void uipudp_appcall(void);

@@ -1,14 +1,44 @@
+#include "network.h"
 #include "uip.h"
 #include "enc28j60.h"
 #include <avr/io.h>
 #include <util/delay.h>
 
-uint16_t network_read(void){
-	return ((uint16_t) enc28j60PacketReceive(UIP_BUFSIZE, (uint8_t *)uip_buf));
+uint16_t network_read_start(void){
+  return enc28j60PacketReceiveStart();
 }
 
-void network_send(void){
-	enc28j60PacketSend(uip_len, (uint8_t *)uip_buf);
+uint16_t
+network_read_next(uint16_t len, uint8_t * buf)
+{
+  return enc28j60PacketReceiveNext(len, buf);
+}
+
+void network_read_end(void){
+  enc28j60PacketReceiveEnd();
+}
+
+void network_send(){
+  enc28j60PacketSendStart();
+  enc28j60PacketSendNext(uip_len,uip_buf);
+  enc28j60PacketSendEnd();
+}
+
+void network_send_start(void){
+  enc28j60PacketSendStart();
+}
+
+void network_send_next(uint16_t len, uint8_t *buf){
+  enc28j60PacketSendNext(len, buf);
+}
+
+void network_send_end(uint16_t len, uint8_t *buf){
+  if (len > 0)
+    {
+      enc28j60PacketSendReset();
+      enc28j60WriteBuffer(len,buf);
+    }
+  enc28j60PacketSendEnd();
 }
 
 void network_init_mac(const uint8_t* macaddr)

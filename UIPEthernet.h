@@ -38,7 +38,7 @@ extern "C"
                      ((u16_t *)(addr))[1] = HTONS(((ip[2]) << 8) | (ip[3])); \
                   } while(0)
 
-#define ip_addr_uip(a) IPAddress(a[0] >> 8, a[0] & 0xFF, a[1] >> 8 , a[1] & 0xFF); //TODO this is not IPV6 capable
+#define ip_addr_uip(a) IPAddress(a[0] & 0xFF, a[0] >> 8 , a[1] & 0xFF, a[1] >> 8); //TODO this is not IPV6 capable
 
 #define uip_seteth_addr(eaddr) do {uip_ethaddr.addr[0] = eaddr[0]; \
                               uip_ethaddr.addr[1] = eaddr[1];\
@@ -46,6 +46,9 @@ extern "C"
                               uip_ethaddr.addr[3] = eaddr[3];\
                               uip_ethaddr.addr[4] = eaddr[4];\
                               uip_ethaddr.addr[5] = eaddr[5];} while(0)
+
+#define UIP_STREAM_READ 1;
+#define UIP_STREAM_WRITE 2;
 
 typedef void
 (*fn_uip_cb_t)(uip_tcp_appstate_t *conn);
@@ -85,9 +88,23 @@ private:
   DhcpClass* _dhcp;
 
   struct timer periodic_timer;
-  struct UIPEthernet_state *cur_conn; // current connection (for print etc.)
   fn_uip_cb_t fn_uip_cb;
   fn_uip_udp_cb_t fn_uip_udp_cb;
+  uint16_t packetlen;
+  uint16_t num;
+  uint8_t left;
+  uint8_t packetstream;
+  uint8_t hdrlen;
+
+  void stream_packet_read_start();
+  void stream_packet_read_end();
+
+  void stream_packet_write_start();
+  void stream_packet_write_end();
+
+  int stream_packet_read(unsigned char* buffer, size_t len);
+  int stream_packet_peek();
+  void stream_packet_write(unsigned char* buffer, size_t len);
 
   void init(const uint8_t* mac);
   void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
