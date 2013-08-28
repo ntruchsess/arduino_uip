@@ -10,8 +10,8 @@
  *
  * This UdpClient example tries to send a packet via udp to 192.168.0.1
  * on port 5000 every 5 seconds. After successfully sending the packet it
- * waits for a response on the local port that has implicitly been opened
- * when sending the packet.
+ * waits for up to 5 seconds for a response on the local port that has been
+ * implicitly opened when sending the packet.
  *
  * Copyright (C) 2013 by Norbert Truchsess (norbert.truchsess@t-online.de)
  */
