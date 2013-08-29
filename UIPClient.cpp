@@ -130,8 +130,7 @@ UIPClient::_write(struct uip_conn* conn, const uint8_t *buf, size_t size)
 {
   size_t i=0; //TODO implement this using memcpy?
   while(i < size && _write(conn,buf[i++]) > 0);
-  return i;
-}
+  return i;}
 
 int
 UIPClient::available()
@@ -184,13 +183,19 @@ UIPClient::read()
 int
 UIPClient::peek()
 {
+  return this->peek(0);
+}
+
+int
+UIPClient::peek(size_t position)
+{
   uip_userdata_t *u;
   UIPEthernet.tick();
   if (_uip_conn && (u = (uip_userdata_t *)_uip_conn->appstate.user))
     {
-      if (u->in_len == u->in_pos)
+      if (u->in_len <= (u->in_pos + position))
         return -1;
-      return u->in_buffer[u->in_pos];
+      return u->in_buffer[u->in_pos + position];
     }
   return -1;
 }
