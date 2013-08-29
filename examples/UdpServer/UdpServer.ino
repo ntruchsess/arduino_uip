@@ -1,5 +1,5 @@
 /*
- * UIPEthernet EchoUdp example.
+ * UIPEthernet UdpServer example.
  *
  * UIPEthernet is a TCP/IP stack that can be used with a enc28j60 based
  * Ethernet-shield.
@@ -8,8 +8,10 @@
  *
  *      -----------------
  *
- * This EchoUdp example sets up a udp-server at 192.168.1.6 on port 5000.
+ * This UdpServer example sets up a udp-server at 192.168.0.6 on port 5000.
  * send packet via upd to test
+ *
+ * Copyright (C) 2013 by Norbert Truchsess (norbert.truchsess@t-online.de)
  */
 
 #include <UIPEthernet.h>

@@ -64,21 +64,6 @@ UIPClient::connect(const char *host, uint16_t port)
   }
 }
 
-int
-UIPClient::read(uint8_t *buf, size_t size)
-{
-  // TODO: Use a more efficient way to do this
-
-  size_t position;
-  for(position = 0; position <= size; ++position)
-  {
-    int read_byte = this->read();
-    if(read_byte == -1) return position;
-    else buf[position] = (uint8_t) read_byte;
-  }
-  return position;
-}
-
 void
 UIPClient::stop()
 {
@@ -161,6 +146,21 @@ UIPClient::_available(struct uip_conn* conn)
   if (conn && (u = (uip_userdata_t *) (((uip_tcp_appstate_t) conn->appstate).user)))
     {
       return u->in_len - u->in_pos;
+    }
+  return -1;
+}
+
+int
+UIPClient::read(uint8_t *buf, size_t size)
+{
+  uip_userdata_t *u;
+  UIPEthernet.tick();
+  if (_uip_conn && (u = (uip_userdata_t *)_uip_conn->appstate.user))
+    {
+      int retlen = size > u->in_len-u->in_pos ? u->in_len-u->in_pos : size;
+      memcpy(buf,u->in_buffer+u->in_pos,retlen);
+      u->in_pos+=retlen;
+      return retlen;
     }
   return -1;
 }

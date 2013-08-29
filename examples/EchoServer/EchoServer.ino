@@ -25,8 +25,8 @@
 
 UIPServer server = UIPServer(1000);
 
-void setup() {
-
+void setup()
+{
   Serial.begin(9600);
 
   UIPEthernet.set_uip_callback(&UIPClient::uip_callback);
@@ -39,15 +39,22 @@ void setup() {
   server.begin();
 }
 
-void loop() {
+void loop()
+{
+  size_t size;
 
-  if (UIPClient client = server.available()) {
-    if (client) {
-      while (client.available()) {
-        int c = client.read();
-        Serial.write(c);
-        client.write(c);
-      }
+  if (UIPClient client = server.available())
+    {
+      if (client)
+        {
+          while((size = client.available()) > 0)
+            {
+              uint8_t* msg = (uint8_t*)malloc(size);
+              size = client.read(msg,size);
+              Serial.write(msg,size);
+              client.write(msg,size);
+              free(msg);
+            }
+        }
     }
-  }
 }
