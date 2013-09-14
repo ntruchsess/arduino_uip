@@ -176,6 +176,7 @@ UIPEthernetClass::tick()
                   network_send();
                 }
             }
+          else network_read_end();
         }
       if (timer_expired(&periodic_timer))
         {
