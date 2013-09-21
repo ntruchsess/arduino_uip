@@ -134,11 +134,7 @@ typedef unsigned short uip_stats_t;
 // SLIP
 //#define UIP_CONF_LLH_LEN 0
 
-
-#include "utility/psock.h"
-
 typedef struct uipethernet_state {
-  struct psock p;
   void *user;
 } uip_tcp_appstate_t;
 

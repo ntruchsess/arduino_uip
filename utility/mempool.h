@@ -8,9 +8,9 @@
 
 #include "mempool_conf.h"
 
-#ifdef MEMBLOCK_MV
-#define memblock_mv_cb(dest,src,size) MEMBLOCK_MV(dest,src,size)
-#endif
+//#ifdef MEMBLOCK_MV
+//#define memblock_mv_cb(dest,src,size) MEMBLOCK_MV(dest,src,size)
+//#endif
 
 #ifdef MEMBLOCK_ALLOC
 #define memblock_alloc_cb(address,size) MEMBLOCK_ALLOC(address,size)
@@ -33,11 +33,12 @@ class MemoryPool
   friend class MemoryPoolTest;
 #endif
 
-  friend class Enc28J60Network;
-
-private:
+protected:
   memaddress poolsize;
   struct memblock blocks[NUM_MEMBLOCKS+1];
+#ifdef MEMBLOCK_MV
+  virtual void memblock_mv_cb(memaddress dest, memaddress src, memaddress size) = 0;
+#endif
 
 public:
   MemoryPool(memaddress start, memaddress size);

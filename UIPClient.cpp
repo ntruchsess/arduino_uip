@@ -21,12 +21,15 @@
 extern "C"
 {
 #import "uip-conf.h"
-#import "psock.h"
 #import "uip.h"
+#import "string.h"
 }
 #include "UIPClient.h"
 #include "UIPEthernet.h"
 #include "Dns.h"
+
+#define UIP_TCP_PHYH_LEN UIP_LLH_LEN+UIP_IPTCPH_LEN
+#define BUF ((struct uip_tcpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 UIPClient::UIPClient() :
     _uip_conn(NULL)
@@ -91,32 +94,7 @@ UIPClient::operator bool()
 size_t
 UIPClient::write(uint8_t c)
 {
-  return _write(_uip_conn, c);
-}
-
-size_t
-UIPClient::_write(struct uip_conn* conn, uint8_t c)
-{
-  uip_userdata_t *u;
-  if (conn
-      && (u = (uip_userdata_t *)conn->appstate.user))
-    {
-      if (u->out_pos == UIP_SOCKET_BUFFER_SIZE)
-        {
-          UIPEthernet.tick();
-          if (u->out_pos == UIP_SOCKET_BUFFER_SIZE)
-            {
-              return 0;
-            }
-        }
-      u->out_buffer[(u->out_pos)++] = c;
-      if (u->out_pos == UIP_SOCKET_BUFFER_SIZE)
-        {
-          UIPEthernet.tick();
-        }
-      return 1;
-    }
-  return -1;
+  return _write(_uip_conn, &c, 1);
 }
 
 size_t
@@ -128,9 +106,53 @@ UIPClient::write(const uint8_t *buf, size_t size)
 size_t
 UIPClient::_write(struct uip_conn* conn, const uint8_t *buf, size_t size)
 {
-  size_t i=0; //TODO implement this using memcpy?
-  while(i < size && _write(conn,buf[i++]) > 0);
-  return i;
+  uip_userdata_t *u;
+  UIPEthernet.tick();
+  if (conn && (u = (uip_userdata_t *)conn->appstate.user))
+    {
+      int remain = size;
+      memhandle* packet = &u->packets_out[UIP_SOCKET_NUMPACKETS-1];
+      uint8_t i = UIP_SOCKET_NUMPACKETS-1;
+      uint16_t written;
+searchpacket:
+      if (*packet != NOBLOCK)
+        {
+          if (u->out_pos == UIP_SOCKET_DATALEN)
+            {
+              if (i == UIP_SOCKET_NUMPACKETS-1)
+                goto ready;
+              packet++;
+              goto newpacket;
+            }
+          goto writepacket;
+        }
+      if (i > 0)
+        {
+          i--;
+          packet--;
+          goto searchpacket;
+        }
+newpacket:
+      *packet = UIPEthernet.network.newPacket(UIP_SOCKET_DATALEN);
+      if (*packet == NOBLOCK)
+          goto ready;
+      u->out_pos = 0;
+writepacket:
+      written = UIPEthernet.network.writePacket(*packet,u->out_pos,(uint8_t*)buf+size-remain,remain);
+      remain -= written;
+      u->out_pos+=written;
+      if (remain > 0)
+        {
+          if (i == UIP_SOCKET_NUMPACKETS-1)
+            goto ready;
+          i++;
+          packet++;
+          goto newpacket;
+        }
+ready:
+      return size-remain;
+    }
+  return -1;
 }
 
 int
@@ -144,9 +166,19 @@ UIPClient::_available(struct uip_conn* conn)
 {
   uip_userdata_t *u;
   UIPEthernet.tick();
-  if (conn && (u = (uip_userdata_t *) (((uip_tcp_appstate_t) conn->appstate).user)))
+  if (conn && (u = (uip_userdata_t *)conn->appstate.user))
     {
-      return u->in_len - u->in_pos;
+      memhandle* packet = &u->packets_in[0];
+      if (*packet == NOBLOCK)
+        return 0;
+      int len = UIPEthernet.network.packetLen(*packet++) - u->in_pos;
+      for (uint8_t i=1;i<UIP_SOCKET_NUMPACKETS;i++)
+        {
+          if (*packet == NOBLOCK)
+            break;
+          len += UIPEthernet.network.packetLen(*packet++);
+        }
+      return len;
     }
   return -1;
 }
@@ -158,10 +190,48 @@ UIPClient::read(uint8_t *buf, size_t size)
   UIPEthernet.tick();
   if (_uip_conn && (u = (uip_userdata_t *)_uip_conn->appstate.user))
     {
-      int retlen = size > u->in_len-u->in_pos ? u->in_len-u->in_pos : size;
-      memcpy(buf,u->in_buffer+u->in_pos,retlen);
-      u->in_pos+=retlen;
-      return retlen;
+      int remain = size;
+      memhandle* packet = &u->packets_in[0];
+      uint8_t i = 0;
+      memhandle *p;
+      uint16_t read;
+readloop:
+      //packets left to read?
+      if (*packet == NOBLOCK)
+        {
+          if (i == 0)
+            return 0;
+          u->packets_in[0] = NOBLOCK;
+          goto ready;
+        }
+      read = UIPEthernet.network.readPacket(*packet,u->in_pos,buf+size-remain,remain);
+      remain -= read;
+      u->in_pos += read;
+      //packet completely read?
+      if (u->in_pos == UIPEthernet.network.packetLen(*packet))
+        {
+          u->in_pos = 0;
+          UIPEthernet.network.freePacket(*packet++);
+          i++;
+          //more data requested (and further slots available to test)?
+          if (remain > 0 && i < UIP_SOCKET_NUMPACKETS)
+            goto readloop;
+        }
+      // first packet not completely read:
+      if (i == 0)
+        return read;
+      p = &u->packets_in[0];
+movehandles:
+      if (i == UIP_SOCKET_NUMPACKETS || *packet == NOBLOCK)
+        {
+          *p = NOBLOCK;
+          goto ready;
+        }
+      *p++ = *packet++;
+      i++;
+      goto movehandles;
+ready:
+      return size-remain;
     }
   return -1;
 }
@@ -169,16 +239,10 @@ UIPClient::read(uint8_t *buf, size_t size)
 int
 UIPClient::read()
 {
-  uip_userdata_t *u;
-  UIPEthernet.tick();
-  if (_uip_conn && (u = (uip_userdata_t *)_uip_conn->appstate.user))
-    {
-      if (u->in_len == u->in_pos)
-        return -1;
-      int ret = u->in_buffer[(u->in_pos)++];
-      return ret;
-    }
-  return -1;
+  uint8_t c;
+  if (read(&c,1) < 0)
+    return -1;
+  return c;
 }
 
 int
@@ -188,9 +252,13 @@ UIPClient::peek()
   UIPEthernet.tick();
   if (_uip_conn && (u = (uip_userdata_t *)_uip_conn->appstate.user))
     {
-      if (u->in_len == u->in_pos)
-        return -1;
-      return u->in_buffer[u->in_pos];
+      memhandle p = u->packets_in[0];
+      if (p != NOBLOCK)
+        {
+          uint8_t c;
+          UIPEthernet.network.readPacket(p,u->in_pos,&c,1);
+          return c;
+        }
     }
   return -1;
 }
@@ -201,76 +269,18 @@ UIPClient::flush()
   UIPEthernet.tick();
 }
 
-bool
-UIPClient::readyToSend(uip_tcp_appstate_t *s)
-{
-  if (uip_userdata_t *u = (uip_userdata_t *) s->user)
-    {
-      if (u->out_len == 0 && u->out_pos > 0)
-        {
-          u->out_len = u->out_pos;
-          return true;
-        }
-      return u->out_len > 0;
-    }
-  return 0;
-}
-
-void
-UIPClient::dataSent(uip_tcp_appstate_t *s)
-{
-  if (uip_userdata_t *u = (uip_userdata_t *) s->user)
-    {
-      u->out_pos -= u->out_len;
-      if (u->out_pos > 0)
-        {
-          memcpy(u->out_buffer, u->out_buffer + u->out_len, u->out_pos);
-        }
-      u->out_len = 0;
-    }
-}
-
-bool
-UIPClient::readyToReceive(uip_tcp_appstate_t *s)
-{
-  if (uip_userdata_t *u = (uip_userdata_t *) s->user)
-    {
-      u->in_len -= u->in_pos;
-      if (u->in_len > 0 && u->in_pos > 0)
-        {
-          memcpy(u->in_buffer, u->in_buffer + u->in_pos, u->in_len);
-        }
-      u->in_pos = 0;
-      psock *p = &s->p;
-      p->bufptr = u->in_buffer + u->in_len;
-      p->bufsize = UIP_SOCKET_BUFFER_SIZE - u->in_len;
-      return p->bufsize > 0;
-    }
-  return 0;
-}
-
-void
-UIPClient::dataReceived(uip_tcp_appstate_t *s)
-{
-  if (uip_userdata_t *u = (uip_userdata_t *) s->user)
-    {
-      u->in_len += PSOCK_DATALEN(&s->p);
-    }
-}
-
-bool
-UIPClient::isClosed(uip_tcp_appstate_t *s)
-{
-  if (uip_userdata_t *u = (uip_userdata_t *) s->user)
-    {
-      return u->close;
-    }
-  return false;
-}
-
 void
 UIPClient::uip_callback(uip_tcp_appstate_t *s)
 {
+  // If the connection has been closed, release the data we allocated earlier.
+  if (uip_closed())
+    {
+      if (s->user)
+        free(s->user);
+      s->user = NULL;
+      return;
+    }
+
   if (uip_connected())
     {
 
@@ -281,72 +291,72 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
 
       uip_userdata_t *data = (uip_userdata_t*) malloc(sizeof(uip_userdata_t));
 
-      data->in_len = 0;
-      data->in_pos = 0;
-      data->out_len = 0;
-      data->out_pos = 0;
-      data->close = false;
+      memset(data,0,sizeof(uip_userdata_t));
 
       s->user = data;
 
-      // The protosocket's read functions need a per-connection buffer to store
-      // data they read.  We've got some space for this in our connection_data
-      // structure, so we'll tell uIP to use that.
-      PSOCK_INIT(&s->p, data->in_buffer, sizeof(data->in_buffer));
     }
 
-  // Call/resume our protosocket handler.
-  handle_connection(s);
-
-  // If the connection has been closed, release the data we allocated earlier.
-  if (uip_closed())
+  if (uip_userdata_t *u = (uip_userdata_t *) s->user)
     {
-      if (s->user)
-        free(s->user);
-      s->user = NULL;
+      memhandle *packet;
+      if (u->close)
+        uip_close();
+      if (uip_newdata())
+        {
+          packet = &u->packets_in[0];
+          uint8_t i = 0;
+          for (; i < UIP_SOCKET_NUMPACKETS; i++)
+            {
+              if (*packet == NOBLOCK)
+                {
+                  *packet = UIPEthernet.in_packet;
+                  UIPEthernet.in_packet = NOBLOCK;
+                  uint16_t hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
+                  UIPEthernet.network.resizePacket(*packet,hdrlen,uip_len-hdrlen);
+                  break;
+                }
+              packet++;
+            }
+        }
+      if (uip_acked())
+        {
+          packet = &u->packets_out[0];
+          if (*packet != NOBLOCK)
+            {
+              UIPEthernet.network.freePacket(*packet);
+              if (UIP_SOCKET_NUMPACKETS > 1)
+                {
+                  uint8_t i = 1;
+                  memhandle* p = packet+1;
+ackloop:
+                  *packet = *p;
+                  if (*packet == NOBLOCK)
+                    goto ackready;
+                  packet++;
+                  if (i < UIP_SOCKET_NUMPACKETS-1)
+                    {
+                      i++;
+                      p++;
+                      goto ackloop;
+                    }
+                }
+              *packet = NOBLOCK;
+            }
+        }
+ackready:
+      if (uip_poll() || uip_rexmit())
+        {
+          if (UIPEthernet.out_data == NOBLOCK)
+            {
+              packet = &u->packets_out[0];
+              if (*packet != NOBLOCK)
+                {
+                  UIPEthernet.out_data = *packet;
+                  UIPEthernet.hdrlen = UIP_TCP_PHYH_LEN;
+                  uip_send(uip_appdata,(UIP_SOCKET_NUMPACKETS > 1 && *packet+1 != NOBLOCK) ? UIP_SOCKET_DATALEN : u->out_pos);
+                }
+            }
+        }
     }
 }
-
-// This function is going to use uIP's protosockets to handle the connection.
-// This means it must return int, because of the way the protosockets work.
-// In a nutshell, when a PSOCK_* macro needs to wait for something, it will
-// return from handle_connection so that other work can take place.  When the
-// event is triggered, uip_callback() will call this function again and the
-// switch() statement (see below) will take care of resuming execution where
-// it left off.  It *looks* like this function runs from start to finish, but
-// that's just an illusion to make it easier to code :-)
-int
-UIPClient::handle_connection(uip_tcp_appstate_t *s)
-{
-  // All protosockets must start with this macro.  Its internal implementation
-  // is that of a switch() statement, so all code between PSOCK_BEGIN and
-  // PSOCK_END is actually inside a switch block.  (This means for example,
-  // that you can't declare variables in the middle of it!)
-
-  struct psock *p = &s->p;
-  uip_userdata_t *u = (uip_userdata_t *) s->user;
-
-  PSOCK_BEGIN(p);
-
-    if (uip_newdata() && readyToReceive(s))
-      {
-        PSOCK_READBUF_LEN(p, 0); //TODO check what happens when there's more new data incoming than space left in UIPClients buffer (most likely this is just discarded, isn't it?)
-        dataReceived(s);
-      }
-
-    if (readyToSend(s))
-      {
-        PSOCK_SEND(p, u->out_buffer, u->out_len);
-        dataSent(s);
-      }
-
-    if (isClosed(s))
-      {
-        // Disconnect.
-        PSOCK_CLOSE(p);
-      }
-
-    // All protosockets must end with this macro.  It closes the switch().
-  PSOCK_END(p);
-}
-

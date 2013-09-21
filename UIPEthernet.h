@@ -26,6 +26,7 @@
 #include <Arduino.h>
 #include "Dhcp.h"
 #include "IPAddress.h"
+#include "utility/Enc28J60Network.h"
 
 extern "C"
 {
@@ -46,9 +47,6 @@ extern "C"
                               uip_ethaddr.addr[3] = eaddr[3];\
                               uip_ethaddr.addr[4] = eaddr[4];\
                               uip_ethaddr.addr[5] = eaddr[5];} while(0)
-
-#define UIP_STREAM_READ 1;
-#define UIP_STREAM_WRITE 2;
 
 typedef void
 (*fn_uip_cb_t)(uip_tcp_appstate_t *conn);
@@ -90,26 +88,20 @@ private:
   struct timer periodic_timer;
   fn_uip_cb_t fn_uip_cb;
   fn_uip_udp_cb_t fn_uip_udp_cb;
-  uint16_t packetlen;
-  uint16_t num;
-  uint8_t left;
-  uint8_t packetstream;
+
+  memhandle in_packet;
+  memhandle out_packet;
+  memhandle out_data;
   uint8_t hdrlen;
 
-  void stream_packet_read_start();
-  void stream_packet_read_end();
-
-  void stream_packet_write_start();
-  void stream_packet_write_end();
-
-  int stream_packet_read(unsigned char* buffer, size_t len);
-  int stream_packet_peek();
-  void stream_packet_write(unsigned char* buffer, size_t len);
+  Enc28J60Network network;
 
   void init(const uint8_t* mac);
   void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
 
   void tick();
+
+  boolean network_send();
 
   void uip_callback();
 

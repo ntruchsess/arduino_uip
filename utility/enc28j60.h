@@ -1,9 +1,8 @@
 /*****************************************************************************
-* vim:sw=8:ts=8:si:et
 *
 * Title        : Microchip ENC28J60 Ethernet Interface Driver
 * Author        : Pascal Stang (c)2005
-* Modified by Guido Socher
+* Modified by Norbert Truchsess
 * Copyright: GPL V2
 *
 *This driver provides initialization and transmit/receive
@@ -13,11 +12,6 @@
 *
 *
 *****************************************************************************/
-/*********************************************
- * Modified: nuelectronics.com -- Ethershield for Arduino
- *********************************************/
-//@{
-
 
 #ifndef ENC28J60_H
 #define ENC28J60_H
@@ -260,21 +254,4 @@
 #define        MAX_FRAMELEN        1500        // (note: maximum ethernet frame length would be 1518)
 //#define MAX_FRAMELEN     600
 
-
-// functions
-extern uint8_t enc28j60ReadOp(uint8_t op, uint8_t address);
-extern void enc28j60WriteOp(uint8_t op, uint8_t address, uint8_t data);
-extern void enc28j60ReadBuffer(uint16_t len, uint8_t* data);
-extern void enc28j60WriteBuffer(uint16_t len, uint8_t* data);
-extern void enc28j60SetBank(uint8_t address);
-extern uint8_t enc28j60Read(uint8_t address);
-extern void enc28j60Write(uint8_t address, uint8_t data);
-extern void enc28j60PhyWrite(uint8_t address, uint16_t data);
-extern void enc28j60clkout(uint8_t clk);
-extern void enc28j60Init(uint8_t* macaddr);
-extern void enc28j60PacketSend(uint16_t len, uint8_t* packet);
-extern uint16_t enc28j60PacketReceive(uint16_t maxlen, uint8_t* packet);
-extern uint8_t enc28j60getrev(void);
-
 #endif
-//@}

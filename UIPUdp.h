@@ -37,13 +37,17 @@
 #ifndef UIPUDP_H
 #define UIPUDP_H
 
+#include "Arduino.h"
 #include <Udp.h>
+#include "utility/mempool.h"
 extern "C" {
   #include "utility/uip.h";
 }
 
-#define UDP_PACKET_IN 1
-#define UDP_PACKET_OUT 2
+#define UIP_UDP_MAXDATALEN 1500
+#define UIP_UDP_PHYH_LEN UIP_LLH_LEN+UIP_IPUDPH_LEN
+#define UIP_UDP_MAXPACKETSIZE UIP_UDP_MAXDATALEN+UIP_UDP_PHYH_LEN
+#define UIP_UDP_NUMPACKETS 5
 
 class UIPUDP : public UDP
 {
@@ -53,9 +57,13 @@ private:
 
   struct appdata_t
   {
-    uint8_t mode;
     uint16_t rport;
     IPAddress ripaddr;
+    memaddress out_pos;
+    memhandle packets_in[UIP_UDP_NUMPACKETS];
+    memhandle packet_in;
+    memhandle packet_out;
+    boolean send;
   } appdata;
 
 public:
