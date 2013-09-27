@@ -46,14 +46,7 @@ void UIPServer::begin() {
 }
 
 size_t UIPServer::write(uint8_t c) {
-  size_t ret = 0;
-  for (int sock = 0; sock < UIP_CONNS; sock++) {
-    struct uip_conn* conn = &uip_conns[sock];
-    if (conn->lport == _port && (conn->tcpstateflags != UIP_CLOSE)) {
-      ret = UIPClient::_write(conn,&c,1);
-    }
-  }
-  return ret;
+  return write(&c,1);
 }
 
 size_t UIPServer::write(const uint8_t *buf, size_t size) {

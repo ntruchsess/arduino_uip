@@ -42,7 +42,6 @@ UIPEthernetClass::UIPEthernetClass() :
     fn_uip_udp_cb(NULL),
     in_packet(NOBLOCK),
     out_packet(NOBLOCK),
-    out_data(NOBLOCK),
     hdrlen(0),
     freepacket(false),
     _dhcp(NULL)
@@ -229,6 +228,7 @@ boolean UIPEthernetClass::network_send()
     {
       //TODO check uip.c line 1159, sets uip_appdata to UIP_LLH_LEN + UIP_IPTCPH_LEN although it's udp
       //uint16_t hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
+      //TODO prepend Enc28J60Network control-byte!
       network.writePacket(out_packet,0,uip_buf,hdrlen);
       network.sendPacket(out_packet);
       network.freePacket(out_packet);
@@ -240,16 +240,7 @@ boolean UIPEthernetClass::network_send()
     {
       uint8_t control = 0; //TODO this belongs to Enc28J60Network!
       network.writePacket(packet,0,&control,1);
-      if (out_data == NOBLOCK)
-        {
-          network.writePacket(packet,1,uip_buf,uip_len);
-        }
-      else
-        {
-          network.writePacket(packet,1,uip_buf,hdrlen);
-          network.copyPacket(packet,hdrlen+1,out_data,0,uip_len-hdrlen);
-          out_data = NOBLOCK;
-        }
+      network.writePacket(packet,1,uip_buf,uip_len);
       network.sendPacket(packet);
       network.freePacket(packet);
       return true;

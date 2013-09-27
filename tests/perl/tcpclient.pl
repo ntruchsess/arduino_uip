@@ -18,17 +18,17 @@ Proto => 'tcp',
 
 print "TCP Connection Success.\n";
 
-# read the socket data sent by server.
-$data = <$socket>;
-# we can also read from socket through recv()  in IO::Socket::INET
-# $socket->recv($data,1024);
-print "Received from Server : $data\n";
-
 # write on the socket to server.
 $data = "DATA from Client";
 print $socket "$data\n";
 # we can also send the data through IO::Socket::INET module,
 # $socket->send($data);
+
+# read the socket data sent by server.
+$data = <$socket>;
+# we can also read from socket through recv()  in IO::Socket::INET
+# $socket->recv($data,1024);
+print "Received from Server : $data\n";
 
 sleep (10);
 $socket->close();
