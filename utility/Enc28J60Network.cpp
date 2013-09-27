@@ -25,7 +25,7 @@ extern "C" {
 #define waitspi() while(!(SPSR&(1<<SPIF)))
 
 Enc28J60Network::Enc28J60Network() :
-    MemoryPool(TXSTART_INIT, TXSTOP_INIT-TXSTART_INIT),
+    MemoryPool(TXSTART_INIT, TXSTOP_INIT-TXSTART_INIT+1),
     nextPacketPtr(0xffff),
     dmaStatus(0),
     bank(0xff),
@@ -194,12 +194,14 @@ void
 Enc28J60Network::sendPacket(memhandle handle)
 {
   memblock *packet = &blocks[handle];
+  uint16_t addr = packet->begin;
   // TX start
-  writeReg(ETXSTL, packet->begin&0xFF);
-  writeReg(ETXSTH, packet->begin>>8);
+  writeReg(ETXSTL, addr&0xFF);
+  writeReg(ETXSTH, addr>>8);
   // Set the TXND pointer to correspond to the packet size given
-  writeReg(ETXNDL, (packet->begin+packet->size)&0xFF);
-  writeReg(ETXNDH, (packet->begin+packet->size)>>8);
+  addr += packet->size-1;
+  writeReg(ETXNDL, addr&0xFF);
+  writeReg(ETXNDH, addr>>8);
   // send the contents of the transmit buffer onto the network
   writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
   // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
@@ -279,7 +281,8 @@ Enc28J60Network::copyPacket(memhandle dest_pkt, memaddress dest_pos, memhandle s
   memblock_mv_cb(dest->begin+dest_pos,src->begin+src_pos,len);
 }
 
-uint16_t Enc28J60Network::packetLen(memhandle handle)
+uint16_t
+Enc28J60Network::packetLen(memhandle handle)
 {
   return blocks[handle].size;
 }
@@ -341,7 +344,7 @@ Enc28J60Network::checkDMA()
 
       while (readOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_DMAST)
         ;
-      if (dmaStatus && NEWPACKET)
+      if (dmaStatus & NEWPACKET)
         {
           // Move the RX read pointer to the start of the next received packet
           // This frees the memory we just read out

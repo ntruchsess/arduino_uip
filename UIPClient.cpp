@@ -111,42 +111,26 @@ UIPClient::_write(struct uip_conn* conn, const uint8_t *buf, size_t size)
   if (conn && (u = (uip_userdata_t *)conn->appstate.user))
     {
       int remain = size;
-      memhandle* packet = &u->packets_out[UIP_SOCKET_NUMPACKETS-1];
-      uint8_t i = UIP_SOCKET_NUMPACKETS-1;
       uint16_t written;
-searchpacket:
-      if (*packet != NOBLOCK)
+      memhandle* p = &u->packets_out[u->packet_out_end];
+      if (*p == NOBLOCK)
         {
-          if (u->out_pos == UIP_SOCKET_DATALEN)
-            {
-              if (i == UIP_SOCKET_NUMPACKETS-1)
-                goto ready;
-              packet++;
-              goto newpacket;
-            }
-          goto writepacket;
-        }
-      if (i > 0)
-        {
-          i--;
-          packet--;
-          goto searchpacket;
-        }
 newpacket:
-      *packet = UIPEthernet.network.newPacket(UIP_SOCKET_DATALEN);
-      if (*packet == NOBLOCK)
-          goto ready;
-      u->out_pos = 0;
-writepacket:
-      written = UIPEthernet.network.writePacket(*packet,u->out_pos,(uint8_t*)buf+size-remain,remain);
+          *p = UIPEthernet.network.newPacket(UIP_SOCKET_DATALEN);
+          u->out_pos = 0;
+        }
+      if (*p == NOBLOCK)
+        goto ready;
+      written = UIPEthernet.network.writePacket(*p,u->out_pos,(uint8_t*)buf+size-remain,remain);
       remain -= written;
       u->out_pos+=written;
       if (remain > 0)
         {
-          if (i == UIP_SOCKET_NUMPACKETS-1)
+          uint8_t next = u->packet_out_end == UIP_SOCKET_NUMPACKETS-1 ? 0 : u->packet_out_end+1;
+          if (next == u->packet_out_start)
             goto ready;
-          i++;
-          packet++;
+          u->packet_out_end = next;
+          p = &u->packets_out[next];
           goto newpacket;
         }
 ready:
@@ -168,16 +152,18 @@ UIPClient::_available(struct uip_conn* conn)
   UIPEthernet.tick();
   if (conn && (u = (uip_userdata_t *)conn->appstate.user))
     {
-      memhandle* packet = &u->packets_in[0];
-      if (*packet == NOBLOCK)
+      uint8_t i = u->packet_in_start;
+      if (u->packets_in[i] == NOBLOCK)
         return 0;
-      int len = UIPEthernet.network.packetLen(*packet++) - u->in_pos;
-      for (uint8_t i=1;i<UIP_SOCKET_NUMPACKETS;i++)
+      int len = 0;
+      do
         {
-          if (*packet == NOBLOCK)
+          len += UIPEthernet.network.packetLen(u->packets_in[i]);
+          if (i != u->packet_in_end)
             break;
-          len += UIPEthernet.network.packetLen(*packet++);
+          i = i == UIP_SOCKET_NUMPACKETS-1 ? 0 : i+1;
         }
+      while (true);
       return len;
     }
   return -1;
@@ -191,47 +177,31 @@ UIPClient::read(uint8_t *buf, size_t size)
   if (_uip_conn && (u = (uip_userdata_t *)_uip_conn->appstate.user))
     {
       int remain = size;
-      memhandle* packet = &u->packets_in[0];
-      uint8_t i = 0;
-      memhandle *p;
-      uint16_t read;
-readloop:
-      //packets left to read?
-      if (*packet == NOBLOCK)
+      memhandle* p = &u->packets_in[u->packet_in_start];
+      if (*p == NOBLOCK)
+        return 0;
+      int read;
+      do
         {
-          if (i == 0)
-            return 0;
-          u->packets_in[0] = NOBLOCK;
-          goto ready;
+          read = UIPEthernet.network.readPacket(*p,0,buf+size-remain,remain);
+          if (read == UIPEthernet.network.packetLen(*p))
+            {
+              remain -= read;
+              UIPEthernet.network.freeBlock(*p);
+              *p = NOBLOCK;
+              if (u->packet_in_start == u->packet_in_end)
+                return size-remain;
+              u->packet_in_start = u->packet_in_start == UIP_SOCKET_NUMPACKETS-1 ? 0 : u->packet_in_start+1;
+              p = &u->packets_in[u->packet_in_start];
+            }
+          else
+            {
+              UIPEthernet.network.resizePacket(*p,read);
+              break;
+            }
         }
-      read = UIPEthernet.network.readPacket(*packet,u->in_pos,buf+size-remain,remain);
-      remain -= read;
-      u->in_pos += read;
-      //packet completely read?
-      if (u->in_pos == UIPEthernet.network.packetLen(*packet))
-        {
-          u->in_pos = 0;
-          UIPEthernet.network.freePacket(*packet++);
-          i++;
-          //more data requested (and further slots available to test)?
-          if (remain > 0 && i < UIP_SOCKET_NUMPACKETS)
-            goto readloop;
-        }
-      // first packet not completely read:
-      if (i == 0)
-        return read;
-      p = &u->packets_in[0];
-movehandles:
-      if (i == UIP_SOCKET_NUMPACKETS || *packet == NOBLOCK)
-        {
-          *p = NOBLOCK;
-          goto ready;
-        }
-      *p++ = *packet++;
-      i++;
-      goto movehandles;
-ready:
-      return size-remain;
+      while(remain > 0);
+      return size;
     }
   return -1;
 }
@@ -252,11 +222,11 @@ UIPClient::peek()
   UIPEthernet.tick();
   if (_uip_conn && (u = (uip_userdata_t *)_uip_conn->appstate.user))
     {
-      memhandle p = u->packets_in[0];
+      memhandle p = u->packets_in[u->packet_in_start];
       if (p != NOBLOCK)
         {
           uint8_t c;
-          UIPEthernet.network.readPacket(p,u->in_pos,&c,1);
+          UIPEthernet.network.readPacket(p,0,&c,1);
           return c;
         }
     }
@@ -299,62 +269,58 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
 
   if (uip_userdata_t *u = (uip_userdata_t *) s->user)
     {
-      memhandle *packet;
       if (u->close)
         uip_close();
       if (uip_newdata())
         {
-          packet = &u->packets_in[0];
-          uint8_t i = 0;
-          for (; i < UIP_SOCKET_NUMPACKETS; i++)
+          uint8_t i = u->packet_in_end;
+          if (u->packets_in[i] != NOBLOCK)
             {
-              if (*packet == NOBLOCK)
+              i = i == UIP_SOCKET_NUMPACKETS-1 ? 0 : i+1;
+              if (i == u->packet_in_start)
                 {
-                  *packet = UIPEthernet.in_packet;
-                  UIPEthernet.in_packet = NOBLOCK;
-                  uint16_t hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
-                  UIPEthernet.network.resizePacket(*packet,hdrlen,uip_len-hdrlen);
-                  break;
+                  UIPEthernet.freepacket = false;
+                  goto finish_newdata;
                 }
-              packet++;
             }
+          uint16_t hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
+          UIPEthernet.network.resizePacket(UIPEthernet.in_packet,hdrlen,uip_len);
+          u->packets_in[i] = UIPEthernet.in_packet;
+          UIPEthernet.in_packet = NOBLOCK;
+          u->packet_in_end = i;
         }
+finish_newdata:
       if (uip_acked())
         {
-          packet = &u->packets_out[0];
-          if (*packet != NOBLOCK)
+          memhandle *p = &u->packets_out[u->packet_out_start];
+          if (*p != NOBLOCK)
             {
-              UIPEthernet.network.freePacket(*packet);
-              if (UIP_SOCKET_NUMPACKETS > 1)
-                {
-                  uint8_t i = 1;
-                  memhandle* p = packet+1;
-ackloop:
-                  *packet = *p;
-                  if (*packet == NOBLOCK)
-                    goto ackready;
-                  packet++;
-                  if (i < UIP_SOCKET_NUMPACKETS-1)
-                    {
-                      i++;
-                      p++;
-                      goto ackloop;
-                    }
-                }
-              *packet = NOBLOCK;
+              UIPEthernet.network.freeBlock(*p);
+              *p = NOBLOCK;
+              u->packet_out_start = u->packet_out_start == UIP_SOCKET_NUMPACKETS-1 ? 0 : u->packet_out_start+1;
             }
         }
-ackready:
       if (uip_poll() || uip_rexmit())
         {
           if (UIPEthernet.out_data == NOBLOCK)
             {
-              packet = &u->packets_out[0];
-              if (*packet != NOBLOCK)
+              memhandle p = u->packets_out[u->packet_out_start];
+              if (p != NOBLOCK)
                 {
-                  UIPEthernet.out_data = *packet;
-                  UIPEthernet.hdrlen = UIP_TCP_PHYH_LEN;
-                  uip_send(uip_appdata,(UIP_SOCKET_NUMPACKETS > 1 && *packet+1 != NOBLOCK) ? UIP_SOCKET_DATALEN : u->out_pos);
+                  if (u->packet_out_start == u->packet_out_end)
+                    {
+                      uip_len = u->out_pos;
+                      UIPEthernet.network.resizePacket(p,0,uip_len);
+                      u->packet_out_end = u->packet_out_end == UIP_SOCKET_NUMPACKETS-1 ? 0 : u->packet_out_end+1;
+                    }
+                  else
+                    uip_len = UIPEthernet.network.packetLen(p);
+                  if (uip_len > 0)
+                    {
+                      UIPEthernet.out_data = p;
+                      UIPEthernet.hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
+                      uip_send(uip_appdata,uip_len);
+                    }
                 }
             }
         }

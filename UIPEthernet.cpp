@@ -37,7 +37,15 @@ extern "C"
 // Because uIP isn't encapsulated within a class we have to use global
 // variables, so we can only have one TCP/IP stack per program.
 
-UIPEthernetClass::UIPEthernetClass() : fn_uip_cb(NULL)
+UIPEthernetClass::UIPEthernetClass() :
+    fn_uip_cb(NULL),
+    fn_uip_udp_cb(NULL),
+    in_packet(NOBLOCK),
+    out_packet(NOBLOCK),
+    out_data(NOBLOCK),
+    hdrlen(0),
+    freepacket(false),
+    _dhcp(NULL)
 {
 }
 
@@ -146,14 +154,17 @@ IPAddress UIPEthernetClass::dnsServerIP()
 void
 UIPEthernetClass::tick()
 {
-  if (in_packet != NOBLOCK)
-    in_packet = network.receivePacket();
+  if (in_packet == NOBLOCK)
+    {
+      in_packet = network.receivePacket();
+    }
   if (in_packet != NOBLOCK)
     {
-      uint16_t packetlen = network.packetLen(in_packet);
-      if (packetlen > 0)
+      uip_len = network.packetLen(in_packet);
+      freepacket = true;
+      if (uip_len > 0)
         {
-          network.readPacket(in_packet,0,(uint8_t*)uip_buf,UIP_LLH_LEN + UIP_TCPIP_HLEN);
+          network.readPacket(in_packet,0,(uint8_t*)uip_buf,UIP_BUFSIZE);
           if (ETH_HDR ->type == HTONS(UIP_ETHTYPE_IP))
             {
               uip_arp_ipin();
@@ -171,12 +182,12 @@ UIPEthernetClass::tick()
                 {
                   network_send();
                 }
-              network.freePacket(in_packet);
             }
         }
-      else
+      if (in_packet != NOBLOCK && freepacket)
         {
           network.freePacket(in_packet);
+          in_packet = NOBLOCK;
         }
     }
 
@@ -224,17 +235,19 @@ boolean UIPEthernetClass::network_send()
       out_packet = NOBLOCK;
       return true;
     }
-  memhandle packet = network.newPacket(uip_len);
-  if (packet)
+  memhandle packet = network.newPacket(uip_len+1);
+  if (packet != NOBLOCK)
     {
+      uint8_t control = 0; //TODO this belongs to Enc28J60Network!
+      network.writePacket(packet,0,&control,1);
       if (out_data == NOBLOCK)
         {
-          network.writePacket(packet,0,uip_buf,uip_len);
+          network.writePacket(packet,1,uip_buf,uip_len);
         }
       else
         {
-          network.writePacket(packet,0,uip_buf,hdrlen);
-          network.copyPacket(packet,hdrlen,out_data,0,uip_len-hdrlen);
+          network.writePacket(packet,1,uip_buf,hdrlen);
+          network.copyPacket(packet,hdrlen+1,out_data,0,uip_len-hdrlen);
           out_data = NOBLOCK;
         }
       network.sendPacket(packet);

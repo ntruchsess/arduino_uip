@@ -93,6 +93,7 @@ private:
   memhandle out_packet;
   memhandle out_data;
   uint8_t hdrlen;
+  boolean freepacket;
 
   Enc28J60Network network;
 

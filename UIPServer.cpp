@@ -29,7 +29,7 @@ UIPServer::UIPServer(uint16_t port) : _port(htons(port)) {
 
 UIPClient UIPServer::available() {
   UIPEthernet.tick();
-  for (int sock = 0; sock < UIP_CONNS; sock++) {
+  for (uint8_t sock = 0; sock < UIP_CONNS; sock++) {
     struct uip_conn* conn = &uip_conns[sock];
     if (conn->lport == _port) {
       if (UIPClient::_available(conn)) {

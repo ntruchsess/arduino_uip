@@ -28,16 +28,20 @@ extern "C" {
   #import "utility/uip.h"
 }
 
-#define UIP_SOCKET_DATALEN 64
+#define UIP_SOCKET_DATALEN UIP_TCP_MSS
+//#define UIP_SOCKET_NUMPACKETS UIP_RECEIVE_WINDOW/UIP_TCP_MSS+1
 #define UIP_SOCKET_NUMPACKETS 5
 
 typedef uint8_t uip_socket_ptr;
 
 typedef struct uip_userdata {
-  memaddress in_pos;
   memaddress out_pos;
   memhandle packets_in[UIP_SOCKET_NUMPACKETS];
   memhandle packets_out[UIP_SOCKET_NUMPACKETS];
+  uint8_t packet_in_start;
+  uint8_t packet_in_end;
+  uint8_t packet_out_start;
+  uint8_t packet_out_end;
   bool close;
 } uip_userdata_t;
 
