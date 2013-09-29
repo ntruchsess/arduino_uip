@@ -190,9 +190,9 @@ UIPEthernetClass::tick()
         }
     }
 
-  if (timer_expired(&periodic_timer))
+  if (timer_expired(periodic_timer))
     {
-      timer_reset(&periodic_timer);
+      timer_reset(periodic_timer);
       for (int i = 0; i < UIP_CONNS; i++)
         {
           uip_periodic(i);
@@ -249,7 +249,7 @@ boolean UIPEthernetClass::network_send()
 }
 
 void UIPEthernetClass::init(const uint8_t* mac) {
-  timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
+  timer_set(this->periodic_timer, CLOCK_SECOND / 4);
 
   network.init((uint8_t*)mac);
   uip_seteth_addr(mac);

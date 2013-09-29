@@ -16,10 +16,17 @@
 
 #include "mempool.h"
 
+#if defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__)
+#define ENC28J60_CONTROL_CS     53
+#define SPI_MOSI        51
+#define SPI_MISO        50
+#define SPI_SCK         52
+#else;
 #define ENC28J60_CONTROL_CS     10
-#define SPI_MOSI                                11
-#define SPI_MISO                                12
-#define SPI_SCK                                 13
+#define SPI_MOSI        11
+#define SPI_MISO        12
+#define SPI_SCK         13
+#endif;
 
 /*
  * Empfangen von ip-header, arp etc...

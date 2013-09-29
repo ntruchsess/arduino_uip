@@ -85,7 +85,7 @@ private:
   IPAddress _dnsServerAddress;
   DhcpClass* _dhcp;
 
-  struct timer periodic_timer;
+  struct timer * periodic_timer;
   fn_uip_cb_t fn_uip_cb;
   fn_uip_udp_cb_t fn_uip_udp_cb;
 
