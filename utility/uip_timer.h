@@ -1,18 +1,27 @@
 /**
- * \defgroup clock Clock interface
+ * \defgroup timer Timer library
  *
- * The clock interface is the interface between the \ref timer "timer library"
- * and the platform specific clock functionality. The clock
- * interface must be implemented for each platform that uses the \ref
- * timer "timer library".
+ * The timer library provides functions for setting, resetting and
+ * restarting timers, and for checking if a timer has expired. An
+ * application must "manually" check if its timers have expired; this
+ * is not done automatically.
  *
- * The clock interface does only one this: it measures time. The clock
- * interface provides a macro, CLOCK_SECOND, which corresponds to one
- * second of system time.
+ * A timer is declared as a \c struct \c timer and all access to the
+ * timer is made by a pointer to the declared timer.
  *
- * \sa \ref timer "Timer library"
+ * \note The timer library uses the \ref clock "Clock library" to
+ * measure time. Intervals should be specified in the format used by
+ * the clock library.
  *
  * @{
+ */
+
+
+/**
+ * \file
+ * Timer library header file.
+ * \author
+ * Adam Dunkels <adam@sics.se>
  */
 
 /*
@@ -47,42 +56,31 @@
  *
  * Author: Adam Dunkels <adam@sics.se>
  *
- * $Id: clock.h,v 1.3 2006/06/11 21:46:39 adam Exp $
+ * $Id: timer.h,v 1.3 2006/06/11 21:46:39 adam Exp $
  */
-#ifndef __CLOCK_H__
-#define __CLOCK_H__
+#ifndef __UIP_TIMER_H__
+#define __UIP_TIMER_H__
 
-#include "clock-arch.h"
+#include "uip_clock.h"
 
 /**
- * Initialize the clock library.
+ * A timer.
  *
- * This function initializes the clock library and should be called
- * from the main() function of the system.
- *
- */
-void clock_init(void);
-
-/**
- * Get the current clock time.
- *
- * This function returns the current system clock time.
- *
- * \return The current clock time, measured in system ticks.
- */
-clock_time_t clock_time(void);
-
-/**
- * A second, measured in system clock time.
+ * This structure is used for declaring a timer. The timer must be set
+ * with timer_set() before it can be used.
  *
  * \hideinitializer
  */
-#ifdef CLOCK_CONF_SECOND
-#define CLOCK_SECOND CLOCK_CONF_SECOND
-#else
-#define CLOCK_SECOND (clock_time_t)32
-#endif
+struct uip_timer {
+  clock_time_t start;
+  clock_time_t interval;
+};
 
-#endif /* __CLOCK_H__ */
+void uip_timer_set(struct uip_timer *t, clock_time_t interval);
+void uip_timer_reset(struct uip_timer *t);
+void uip_timer_restart(struct uip_timer *t);
+int uip_timer_expired(struct uip_timer *t);
+
+#endif /* __UIP_TIMER_H__ */
 
 /** @} */

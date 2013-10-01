@@ -27,9 +27,9 @@
 extern "C"
 {
 #include "uip-conf.h"
-#include "uip.h"
-#include "uip_arp.h"
-#include "timer.h"
+#include "utility/uip.h"
+#include "utility/uip_arp.h"
+#include "utility/uip_timer.h"
 }
 
 #define ETH_HDR ((struct uip_eth_hdr *)&uip_buf[0])
@@ -190,9 +190,9 @@ UIPEthernetClass::tick()
         }
     }
 
-  if (timer_expired(&periodic_timer))
+  if (uip_timer_expired(&periodic_timer))
     {
-      timer_reset(&periodic_timer);
+      uip_timer_reset(&periodic_timer);
       for (int i = 0; i < UIP_CONNS; i++)
         {
           uip_periodic(i);
@@ -249,7 +249,7 @@ boolean UIPEthernetClass::network_send()
 }
 
 void UIPEthernetClass::init(const uint8_t* mac) {
-  timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
+  uip_timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
 
   network.init((uint8_t*)mac);
   uip_seteth_addr(mac);
