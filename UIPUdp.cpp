@@ -81,23 +81,56 @@ UIPUDP::beginPacket(IPAddress ip, uint16_t port)
     {
       uip_ipaddr_t ripaddr;
       uip_ip_addr(&ripaddr, ip);
+#ifdef UIPETHERNET_DEBUG_UDP
+      Serial.print("udp beginPacket, ");
+#endif
       if (_uip_udp_conn)
         {
-          _uip_udp_conn->rport = HTONS(port);
+          _uip_udp_conn->rport = htons(port);
           uip_ipaddr_copy(_uip_udp_conn->ripaddr, &ripaddr);
         }
       else
         {
-          _uip_udp_conn = uip_udp_new(&ripaddr,HTONS(port));
-          _uip_udp_conn->appstate.user = &appdata;
+          _uip_udp_conn = uip_udp_new(&ripaddr,htons(port));
+          if (_uip_udp_conn)
+            {
+#ifdef UIPETHERNET_DEBUG_UDP
+              Serial.print("new connection, ");
+#endif
+              _uip_udp_conn->appstate.user = &appdata;
+            }
+          else
+            {
+#ifdef UIPETHERNET_DEBUG_UDP
+              Serial.println("failed to allocate new connection");
+#endif
+              return 0;
+            }
         }
+#ifdef UIPETHERNET_DEBUG_UDP
+          Serial.print("rip: ");
+          Serial.print(ip);
+          Serial.print(", port: ");
+          Serial.println(port);
+#endif
     }
-  if (_uip_udp_conn && appdata.packet_out == NOBLOCK)
+  if (_uip_udp_conn)
     {
-      appdata.packet_out = UIPEthernet.network.allocBlock(UIP_OUTPACKETOFFSET + UIP_UDP_MAXPACKETSIZE);
-      appdata.out_pos = UIP_OUTPACKETOFFSET + UIP_UDP_PHYH_LEN;
-      if (appdata.packet_out != NOBLOCK)
-        return 1;
+      if (appdata.packet_out == NOBLOCK)
+        {
+          appdata.packet_out = UIPEthernet.network.allocBlock(UIP_OUTPACKETOFFSET + UIP_UDP_MAXPACKETSIZE);
+          appdata.out_pos = UIP_OUTPACKETOFFSET + UIP_UDP_PHYH_LEN;
+          if (appdata.packet_out != NOBLOCK)
+            return 1;
+#ifdef UIPETHERNET_DEBUG_UDP
+          else
+            Serial.println("failed to allocate memory for packet");
+#endif
+        }
+#ifdef UIPETHERNET_DEBUG_UDP
+      else
+        Serial.println("previous packet on that connection not sent yet");
+#endif
     }
   return 0;
 }
@@ -157,12 +190,20 @@ UIPUDP::parsePacket()
   UIPEthernet.tick();
   if (appdata.packet_in != NOBLOCK)
     {
+#ifdef UIPETHERNET_DEBUG_UDP
+      Serial.print("udp parsePacket freeing previous packet: ");
+      Serial.println(appdata.packet_in);
+#endif;
       UIPEthernet.network.freeBlock(appdata.packet_in);
     }
   memhandle *packet = &appdata.packets_in[0];
   appdata.packet_in = *packet;
   if (appdata.packet_in != NOBLOCK)
     {
+#ifdef UIPETHERNET_DEBUG_UDP
+      Serial.print("udp parsePacket received packet: ");
+      Serial.print(appdata.packet_in);
+#endif
       if (UIP_UDP_NUMPACKETS > 1)
         {
           uint8_t i = 1;
@@ -181,7 +222,12 @@ freeloop:
         }
       *packet = NOBLOCK;
 freeready:
-      return UIPEthernet.network.blockSize(appdata.packet_in);
+      int size = UIPEthernet.network.blockSize(appdata.packet_in);
+#ifdef UIPETHERNET_DEBUG_UDP
+      Serial.print(", size: ");
+      Serial.println(size);
+#endif
+      return size;
     }
   return 0;
 }
@@ -307,6 +353,7 @@ void UIPUDP::uip_callback(uip_udp_appstate_t *s) {
           Serial.println(UIPEthernet.network.blockSize(data->packet_out));
 #endif
           UIPEthernet.uip_packet = data->packet_out;
+          data->packet_out = NOBLOCK;
           UIPEthernet.uip_hdrlen = UIP_UDP_PHYH_LEN;
           UIPEthernet.packetstate |= UIPETHERNET_SENDPACKET;
           uip_udp_send(data->out_pos - (UIP_OUTPACKETOFFSET + UIP_UDP_PHYH_LEN));
@@ -325,7 +372,7 @@ void UIPUDP::uip_callback(uip_udp_appstate_t *s) {
               data->send = false;
 #ifdef UIPETHERNET_DEBUG_UDP
               Serial.print("udp, uip_packet to send: ");
-              Serial.println(data->packet_out);
+              Serial.println(UIPEthernet.uip_packet);
 #endif
             }
         }
