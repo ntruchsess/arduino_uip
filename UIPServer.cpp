@@ -29,7 +29,7 @@ UIPServer::UIPServer(uint16_t port) : _port(htons(port)) {
 
 UIPClient UIPServer::available() {
   UIPEthernet.tick();
-  for (int sock = 0; sock < UIP_CONNS; sock++) {
+  for (uint8_t sock = 0; sock < UIP_CONNS; sock++) {
     struct uip_conn* conn = &uip_conns[sock];
     if (conn->lport == _port) {
       if (UIPClient::_available(conn)) {
@@ -46,14 +46,7 @@ void UIPServer::begin() {
 }
 
 size_t UIPServer::write(uint8_t c) {
-  size_t ret = 0;
-  for (int sock = 0; sock < UIP_CONNS; sock++) {
-    struct uip_conn* conn = &uip_conns[sock];
-    if (conn->lport == _port && (conn->tcpstateflags != UIP_CLOSE)) {
-      ret = UIPClient::_write(conn,c);
-    }
-  }
-  return ret;
+  return write(&c,1);
 }
 
 size_t UIPServer::write(const uint8_t *buf, size_t size) {

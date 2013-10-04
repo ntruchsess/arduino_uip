@@ -22,21 +22,26 @@
 #define UIPCLIENT_H
 
 #import "Client.h"
+#import "utility/mempool.h"
+
 extern "C" {
   #import "utility/uip.h"
-  #import "utility/psock.h"
 }
 
-#define UIP_SOCKET_BUFFER_SIZE 64
+#define UIP_SOCKET_DATALEN UIP_TCP_MSS
+//#define UIP_SOCKET_NUMPACKETS UIP_RECEIVE_WINDOW/UIP_TCP_MSS+1
+#define UIP_SOCKET_NUMPACKETS 5
+
 typedef uint8_t uip_socket_ptr;
 
 typedef struct uip_userdata {
-  uip_socket_ptr in_pos;
-  uip_socket_ptr in_len;
-  uip_socket_ptr out_pos;
-  uip_socket_ptr out_len;
-  uint8_t in_buffer[UIP_SOCKET_BUFFER_SIZE];
-  uint8_t out_buffer[UIP_SOCKET_BUFFER_SIZE];
+  memaddress out_pos;
+  memhandle packets_in[UIP_SOCKET_NUMPACKETS];
+  memhandle packets_out[UIP_SOCKET_NUMPACKETS];
+  uint8_t packet_in_start;
+  uint8_t packet_in_end;
+  uint8_t packet_out_start;
+  uint8_t packet_out_end;
   bool close;
 } uip_userdata_t;
 
@@ -64,21 +69,10 @@ private:
 
   struct uip_conn *_uip_conn;
 
-  static size_t _write(struct uip_conn*,uint8_t);
   static size_t _write(struct uip_conn*,const uint8_t *buf, size_t size);
   static int _available(struct uip_conn*);
 
-  static bool readyToReceive(uip_tcp_appstate_t *s);
-  static void dataReceived(uip_tcp_appstate_t *s);
-  static bool readyToSend(uip_tcp_appstate_t *s);
-  static void dataSent(uip_tcp_appstate_t *s);
-  static bool isClosed(uip_tcp_appstate_t *s);
-
-  static int handle_connection(uip_tcp_appstate_t *s);
-
   friend class UIPServer;
-  friend class Enc28J60IPStack;
-
 };
 
 #endif

@@ -92,7 +92,28 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
+//#define UIP_CONF_BUFFER_SIZE     98
 #define UIP_CONF_BUFFER_SIZE     118
+
+/**
+ * The TCP maximum segment size.
+ *
+ * This is should not be to set to more than
+ * UIP_BUFSIZE - UIP_LLH_LEN - UIP_TCPIP_HLEN.
+ */
+
+//#define UIP_CONF_TCP_MSS 128
+
+/**
+ * The size of the advertised receiver's window.
+ *
+ * Should be set low (i.e., to the size of the uip_buf buffer) is the
+ * application is slow to process incoming data, or high (32768 bytes)
+ * if the application processes data quickly.
+ *
+ * \hideinitializer
+ */
+//#define UIP_CONF_RECEIVE_WINDOW 512
 
 /**
  * CPU byte order.
@@ -134,11 +155,7 @@ typedef unsigned short uip_stats_t;
 // SLIP
 //#define UIP_CONF_LLH_LEN 0
 
-
-#include "utility/psock.h"
-
 typedef struct uipethernet_state {
-  struct psock p;
   void *user;
 } uip_tcp_appstate_t;
 
@@ -155,5 +172,7 @@ void uipudp_appcall(void);
 #define UIP_UDP_APPCALL uipudp_appcall
 
 #define CC_REGISTER_ARG register
+
+#define UIP_ARCH_CHKSUM 1
 
 #endif /* __UIP_CONF_H__ */
