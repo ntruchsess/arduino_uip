@@ -22,6 +22,7 @@ extern "C"
 {
 #import "uip-conf.h"
 #import "uip.h"
+#import "uip_arp.h"
 #import "string.h"
 }
 #include "UIPClient.h"
@@ -29,7 +30,6 @@ extern "C"
 #include "Dns.h"
 
 #define UIP_TCP_PHYH_LEN UIP_LLH_LEN+UIP_IPTCPH_LEN
-#define BUF ((struct uip_tcpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 UIPClient::UIPClient() :
     _uip_conn(NULL)
@@ -116,7 +116,7 @@ UIPClient::_write(struct uip_conn* conn, const uint8_t *buf, size_t size)
       if (*p == NOBLOCK)
         {
 newpacket:
-          *p = UIPEthernet.network.newPacket(UIP_SOCKET_DATALEN);
+          *p = UIPEthernet.network.allocBlock(UIP_SOCKET_DATALEN);
           if (*p == NOBLOCK)
             goto ready;
           u->out_pos = 0;
@@ -158,7 +158,7 @@ UIPClient::_available(struct uip_conn* conn)
       int len = 0;
       do
         {
-          len += UIPEthernet.network.packetLen(u->packets_in[i]);
+          len += UIPEthernet.network.blockSize(u->packets_in[i]);
           if (i != u->packet_in_end)
             break;
           i = i == UIP_SOCKET_NUMPACKETS-1 ? 0 : i+1;
@@ -184,7 +184,7 @@ UIPClient::read(uint8_t *buf, size_t size)
       do
         {
           read = UIPEthernet.network.readPacket(*p,0,buf+size-remain,remain);
-          if (read == UIPEthernet.network.packetLen(*p))
+          if (read == UIPEthernet.network.blockSize(*p))
             {
               remain -= read;
               UIPEthernet.network.freeBlock(*p);
@@ -196,7 +196,7 @@ UIPClient::read(uint8_t *buf, size_t size)
             }
           else
             {
-              UIPEthernet.network.resizePacket(*p,read);
+              UIPEthernet.network.resizeBlock(*p,read);
               break;
             }
         }
@@ -241,6 +241,11 @@ UIPClient::flush()
   if (_uip_conn && (u = (uip_userdata_t *)_uip_conn->appstate.user) && u->packets_out[u->packet_out_start] != NOBLOCK)
     {
       uip_poll_conn(_uip_conn);
+      if (uip_len > 0)
+        {
+          uip_arp_out();
+          UIPEthernet.network_send();
+        }
     }
 }
 
@@ -253,7 +258,7 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
       if (s->user)
         free(s->user);
       s->user = NULL;
-      return;
+      goto nodata;
     }
 
   if (uip_connected())
@@ -284,12 +289,12 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
               i = i == UIP_SOCKET_NUMPACKETS-1 ? 0 : i+1;
               if (i == u->packet_in_start)
                 {
-                  UIPEthernet.freepacket = false;
+                  UIPEthernet.packetstate &= ~UIPETHERNET_FREEPACKET;
                   goto finish_newdata;
                 }
             }
           uint16_t hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
-          UIPEthernet.network.resizePacket(UIPEthernet.in_packet,hdrlen,uip_len);
+          UIPEthernet.network.resizeBlock(UIPEthernet.in_packet,hdrlen+UIP_INPACKETOFFSET,uip_len);
           u->packets_in[i] = UIPEthernet.in_packet;
           UIPEthernet.in_packet = NOBLOCK;
           u->packet_in_end = i;
@@ -313,17 +318,23 @@ finish_newdata:
               if (u->packet_out_start == u->packet_out_end)
                 {
                   uip_len = u->out_pos;
-                  UIPEthernet.network.resizePacket(p,0,uip_len);
+                  UIPEthernet.network.resizeBlock(p,0,uip_len);
                   u->packet_out_end = u->packet_out_end == UIP_SOCKET_NUMPACKETS-1 ? 0 : u->packet_out_end+1;
                 }
               else
-                uip_len = UIPEthernet.network.packetLen(p);
+                uip_len = UIPEthernet.network.blockSize(p);
               if (uip_len > 0)
                 {
-                  UIPEthernet.network.readPacket(p,0,(uint8_t*)uip_appdata,uip_len);
+                  UIPEthernet.uip_hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
+                  UIPEthernet.uip_packet = UIPEthernet.network.allocBlock(UIPEthernet.uip_hdrlen+UIP_OUTPACKETOFFSET+uip_len);
+                  UIPEthernet.network.copyPacket(UIPEthernet.uip_packet,UIPEthernet.uip_hdrlen+UIP_OUTPACKETOFFSET,p,0,uip_len);
+                  UIPEthernet.packetstate |= UIPETHERNET_SENDPACKET;
                   uip_send(uip_appdata,uip_len);
+                  return;
                 }
             }
         }
     }
+nodata:
+  UIPEthernet.uip_packet = NOBLOCK;
 }

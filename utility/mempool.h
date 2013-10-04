@@ -45,5 +45,8 @@ public:
   memhandle
   allocBlock(memaddress);
   void freeBlock(memhandle);
+  void resizeBlock(memhandle handle, memaddress position);
+  void resizeBlock(memhandle handle, memaddress position, memaddress size);
+  memaddress blockSize(memhandle);
 };
 #endif

@@ -34,6 +34,12 @@ extern "C"
 #include "utility/uip.h"
 }
 
+//#define UIPETHERNET_DEBUG
+//#define UIPETHERNET_DEBUG_CHKSUM
+
+#define UIPETHERNET_FREEPACKET 1
+#define UIPETHERNET_SENDPACKET 2
+
 #define uip_ip_addr(addr, ip) do { \
                      ((u16_t *)(addr))[0] = HTONS(((ip[0]) << 8) | (ip[1])); \
                      ((u16_t *)(addr))[1] = HTONS(((ip[2]) << 8) | (ip[3])); \
@@ -53,6 +59,8 @@ typedef void
 
 typedef void
 (*fn_uip_udp_cb_t)(uip_udp_appstate_t *conn);
+
+#define BUF ((struct uip_tcpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 class UIPEthernetClass
 {
@@ -90,9 +98,9 @@ private:
   fn_uip_udp_cb_t fn_uip_udp_cb;
 
   memhandle in_packet;
-  memhandle out_packet;
-  uint8_t hdrlen;
-  boolean freepacket;
+  memhandle uip_packet;
+  uint8_t uip_hdrlen;
+  uint8_t packetstate;
 
   Enc28J60Network network;
 
@@ -116,6 +124,18 @@ private:
   friend class UIPClient;
 
   friend class UIPUDP;
+
+  static uint16_t chksum(uint16_t sum, const uint8_t* data, uint16_t len);
+  static uint16_t ipchksum(void);
+  uint16_t upper_layer_chksum(uint8_t proto);
+
+  friend uint16_t uip_ipchksum(void);
+  friend uint16_t uip_tcpchksum(void);
+  friend uint16_t uip_udpchksum(void);
+
+#if UIP_CONF_IPV6
+  uint16_t uip_icmp6chksum(void);
+#endif /* UIP_CONF_IPV6 */
 };
 
 extern UIPEthernetClass UIPEthernet;

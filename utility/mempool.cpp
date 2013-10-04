@@ -121,3 +121,25 @@ MemoryPool::freeBlock(memhandle handle)
     }
   while (true);
 }
+
+void
+MemoryPool::resizeBlock(memhandle handle, memaddress position)
+{
+  memblock * block = &blocks[handle];
+  block->begin += position;
+  block->size -= position;
+}
+
+void
+MemoryPool::resizeBlock(memhandle handle, memaddress position, memaddress size)
+{
+  memblock * block = &blocks[handle];
+  block->begin += position;
+  block->size = size;
+}
+
+memaddress
+MemoryPool::blockSize(memhandle handle)
+{
+  return blocks[handle].size;
+}

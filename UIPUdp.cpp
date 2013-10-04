@@ -48,20 +48,20 @@ UIPUDP::stop()
       _uip_udp_conn=NULL;
       if (appdata.packet_in != NOBLOCK)
         {
-          UIPEthernet.network.freePacket(appdata.packet_in);
+          UIPEthernet.network.freeBlock(appdata.packet_in);
           appdata.packet_in = NOBLOCK;
         }
       uint8_t i = 0;
       memhandle* packet = &appdata.packets_in[0];
       while (*packet != NOBLOCK && i < UIP_UDP_NUMPACKETS)
         {
-          UIPEthernet.network.freePacket(*packet);
+          UIPEthernet.network.freeBlock(*packet);
           *packet++ = NOBLOCK;
           i++;
         }
       if (appdata.packet_out != NOBLOCK)
         {
-          UIPEthernet.network.freePacket(appdata.packet_out);
+          UIPEthernet.network.freeBlock(appdata.packet_out);
           appdata.packet_out = NOBLOCK;
         }
     }
@@ -92,8 +92,8 @@ UIPUDP::beginPacket(IPAddress ip, uint16_t port)
     }
   if (_uip_udp_conn && appdata.packet_out == NOBLOCK)
     {
-      appdata.packet_out = UIPEthernet.network.newPacket(UIP_UDP_MAXPACKETSIZE);
-      appdata.out_pos = UIP_UDP_PHYH_LEN;
+      appdata.packet_out = UIPEthernet.network.allocBlock(UIP_OUTPACKETOFFSET + UIP_UDP_MAXPACKETSIZE);
+      appdata.out_pos = UIP_OUTPACKETOFFSET + UIP_UDP_PHYH_LEN;
       if (appdata.packet_out != NOBLOCK)
         return 1;
     }
@@ -116,7 +116,7 @@ UIPUDP::endPacket()
   if (_uip_udp_conn && appdata.packet_out != NOBLOCK)
     {
       appdata.send = true;
-      UIPEthernet.network.resizePacket(appdata.packet_out,0,UIP_UDP_PHYH_LEN+appdata.out_pos);
+      UIPEthernet.network.resizeBlock(appdata.packet_out,0,appdata.out_pos);
       uip_udp_periodic_conn(_uip_udp_conn);
       if (uip_len > 0)
         {
@@ -155,7 +155,7 @@ UIPUDP::parsePacket()
   UIPEthernet.tick();
   if (appdata.packet_in != NOBLOCK)
     {
-      UIPEthernet.network.freePacket(appdata.packet_in);
+      UIPEthernet.network.freeBlock(appdata.packet_in);
     }
   memhandle *packet = &appdata.packets_in[0];
   appdata.packet_in = *packet;
@@ -179,7 +179,7 @@ freeloop:
         }
       *packet = NOBLOCK;
 freeready:
-      return UIPEthernet.network.packetLen(appdata.packet_in);
+      return UIPEthernet.network.blockSize(appdata.packet_in);
     }
   return 0;
 }
@@ -191,7 +191,7 @@ UIPUDP::available()
   UIPEthernet.tick();
   if (appdata.packet_in != NOBLOCK)
     {
-      return UIPEthernet.network.packetLen(appdata.packet_in);
+      return UIPEthernet.network.blockSize(appdata.packet_in);
     }
   return 0;
 }
@@ -217,7 +217,7 @@ UIPUDP::read(unsigned char* buffer, size_t len)
   if (appdata.packet_in != NOBLOCK)
     {
       int read = UIPEthernet.network.readPacket(appdata.packet_in,0,buffer,len);
-      UIPEthernet.network.resizePacket(appdata.packet_in,read);
+      UIPEthernet.network.resizeBlock(appdata.packet_in,read);
       return read;
     }
   return 0;
@@ -244,7 +244,7 @@ UIPUDP::flush()
   UIPEthernet.tick();
   if (appdata.packet_in != NOBLOCK)
     {
-      UIPEthernet.network.freePacket(appdata.packet_in);
+      UIPEthernet.network.freeBlock(appdata.packet_in);
       appdata.packet_in = NOBLOCK;
     }
 }
@@ -279,7 +279,7 @@ void UIPUDP::uip_callback(uip_udp_appstate_t *s) {
                   *packet = UIPEthernet.in_packet;
                   UIPEthernet.in_packet = NOBLOCK;
                   //discard Linklevel and IP and udp-header and any trailing bytes:
-                  UIPEthernet.network.resizePacket(*packet,UIP_UDP_PHYH_LEN,UDPBUF->udplen);
+                  UIPEthernet.network.resizeBlock(*packet,UIP_UDP_PHYH_LEN,UDPBUF->udplen);
                   break;
                 }
               packet++;
@@ -294,7 +294,11 @@ void UIPUDP::uip_callback(uip_udp_appstate_t *s) {
           uip_process(UIP_UDP_SEND_CONN); //generate udp + ip headers
           uip_arp_out(); //add arp
           if (uip_len != UIP_ARPHDRSIZE) //arp found ethaddr for ip (otherwise packet is replaced by arp-request)
-            UIPEthernet.out_packet = data->packet_out;
+            {
+              UIPEthernet.uip_packet = data->packet_out;
+              UIPEthernet.uip_hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
+              UIPEthernet.packetstate |= UIPETHERNET_SENDPACKET;
+            }
           data->send = false;
         }
     }

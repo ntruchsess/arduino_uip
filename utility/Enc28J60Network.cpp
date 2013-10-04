@@ -11,6 +11,7 @@
 extern "C" {
 #include <avr/io.h>
 #include "enc28j60.h"
+#include "uip.h"
 //#include "wiring_private.h"  //all things wiring / arduino 1.0
 }
 
@@ -211,7 +212,7 @@ Enc28J60Network::sendPacket(memhandle handle)
 }
 
 uint16_t
-Enc28J60Network::readPacket(memhandle handle, memaddress position, uint8_t* buffer, uint16_t len)
+Enc28J60Network::setReadPtr(memhandle handle, memaddress position, uint16_t len)
 {
   memblock *packet = &blocks[handle];
   memaddress start = packet->begin + position;
@@ -223,37 +224,16 @@ Enc28J60Network::readPacket(memhandle handle, memaddress position, uint8_t* buff
     }
   if (len > packet->size - position)
     len = packet->size - position;
-  checkDMA();
-  readBuffer(len, buffer);
   return len;
 }
 
-void
-Enc28J60Network::resizePacket(memhandle handle, memaddress position)
+uint16_t
+Enc28J60Network::readPacket(memhandle handle, memaddress position, uint8_t* buffer, uint16_t len)
 {
-  memblock * packet = &blocks[handle];
-  packet->begin += position;
-  packet->size -= position;
-}
-
-void
-Enc28J60Network::resizePacket(memhandle handle, memaddress position, memaddress size)
-{
-  memblock * packet = &blocks[handle];
-  packet->begin += position;
-  packet->size = size;
-}
-
-void
-Enc28J60Network::freePacket(memhandle handle)
-{
-  freeBlock(handle);
-}
-
-memhandle
-Enc28J60Network::newPacket(uint16_t len)
-{
-  return allocBlock(len);
+  len = setReadPtr(handle, position, len);
+  checkDMA();
+  readBuffer(len, buffer);
+  return len;
 }
 
 uint16_t
@@ -279,12 +259,6 @@ Enc28J60Network::copyPacket(memhandle dest_pkt, memaddress dest_pos, memhandle s
   memblock *dest = &blocks[dest_pkt];
   memblock *src = &blocks[src_pkt];
   memblock_mv_cb(dest->begin+dest_pos,src->begin+src_pos,len);
-}
-
-uint16_t
-Enc28J60Network::packetLen(memhandle handle)
-{
-  return blocks[handle].size;
 }
 
 void
@@ -357,7 +331,8 @@ Enc28J60Network::checkDMA()
     }
 }
 
-uint8_t Enc28J60Network::readOp(uint8_t op, uint8_t address)
+uint8_t
+Enc28J60Network::readOp(uint8_t op, uint8_t address)
 {
   CSACTIVE;
   // issue read command
@@ -377,7 +352,8 @@ uint8_t Enc28J60Network::readOp(uint8_t op, uint8_t address)
   return(SPDR);
 }
 
-void Enc28J60Network::writeOp(uint8_t op, uint8_t address, uint8_t data)
+void
+Enc28J60Network::writeOp(uint8_t op, uint8_t address, uint8_t data)
 {
   CSACTIVE;
   // issue write command
@@ -389,8 +365,10 @@ void Enc28J60Network::writeOp(uint8_t op, uint8_t address, uint8_t data)
   CSPASSIVE;
 }
 
-void Enc28J60Network::readBuffer(uint16_t len, uint8_t* data)
+void
+Enc28J60Network::readBuffer(uint16_t len, uint8_t* data)
 {
+  readPtr+=len;
   CSACTIVE;
   // issue read command
   SPDR = ENC28J60_READ_BUF_MEM;
@@ -404,13 +382,14 @@ void Enc28J60Network::readBuffer(uint16_t len, uint8_t* data)
     *data = SPDR;
     data++;
   }
-  readPtr+=len;
   //*data='\0';
   CSPASSIVE;
 }
 
-void Enc28J60Network::writeBuffer(uint16_t len, uint8_t* data)
+void
+Enc28J60Network::writeBuffer(uint16_t len, uint8_t* data)
 {
+  writePtr+=len;
   CSACTIVE;
   // issue write command
   SPDR = ENC28J60_WRITE_BUF_MEM;
@@ -423,11 +402,11 @@ void Enc28J60Network::writeBuffer(uint16_t len, uint8_t* data)
     data++;
     waitspi();
   }
-  writePtr+=len;
   CSPASSIVE;
 }
 
-void Enc28J60Network::setBank(uint8_t address)
+void
+Enc28J60Network::setBank(uint8_t address)
 {
   // set the bank (if needed)
   if((address & BANK_MASK) != bank)
@@ -439,7 +418,8 @@ void Enc28J60Network::setBank(uint8_t address)
   }
 }
 
-uint8_t Enc28J60Network::readReg(uint8_t address)
+uint8_t
+Enc28J60Network::readReg(uint8_t address)
 {
   // set the bank
   setBank(address);
@@ -447,7 +427,8 @@ uint8_t Enc28J60Network::readReg(uint8_t address)
   return readOp(ENC28J60_READ_CTRL_REG, address);
 }
 
-void Enc28J60Network::writeReg(uint8_t address, uint8_t data)
+void
+Enc28J60Network::writeReg(uint8_t address, uint8_t data)
 {
   // set the bank
   setBank(address);
@@ -455,7 +436,8 @@ void Enc28J60Network::writeReg(uint8_t address, uint8_t data)
   writeOp(ENC28J60_WRITE_CTRL_REG, address, data);
 }
 
-void Enc28J60Network::phyWrite(uint8_t address, uint16_t data)
+void
+Enc28J60Network::phyWrite(uint8_t address, uint16_t data)
 {
   // set the PHY register address
   writeReg(MIREGADR, address);
@@ -468,15 +450,56 @@ void Enc28J60Network::phyWrite(uint8_t address, uint16_t data)
   }
 }
 
-void Enc28J60Network::clkout(uint8_t clk)
+void
+Enc28J60Network::clkout(uint8_t clk)
 {
   //setup clkout: 2 is 12.5MHz:
   writeReg(ECOCON, clk & 0x7);
 }
 
 // read the revision of the chip:
-uint8_t Enc28J60Network::getrev(void)
+uint8_t
+Enc28J60Network::getrev(void)
 {
   return(readReg(EREVID));
 }
 
+uint16_t
+Enc28J60Network::chksum(uint16_t sum, memhandle handle, memaddress pos, uint16_t len)
+{
+  uint16_t t;
+  len = setReadPtr(handle, pos, len)-1;
+  readPtr+=len;
+  CSACTIVE;
+  // issue read command
+  SPDR = ENC28J60_READ_BUF_MEM;
+  waitspi();
+  uint16_t i;
+  for (i = 0; i < len; i+=2)
+  {
+    // read data
+    SPDR = 0x00;
+    waitspi();
+    t = SPDR << 8;
+    SPDR = 0x00;
+    waitspi();
+    t += SPDR;
+    sum += t;
+    if(sum < t) {
+      sum++;            /* carry */
+    }
+  }
+  if(i == len) {
+    SPDR = 0x00;
+    waitspi();
+    t = (SPDR << 8) + 0;
+    sum += t;
+    if(sum < t) {
+      sum++;            /* carry */
+    }
+  }
+  CSPASSIVE;
+
+  /* Return sum in host byte order. */
+  return sum;
+}

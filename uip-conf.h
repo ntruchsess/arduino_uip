@@ -173,4 +173,6 @@ void uipudp_appcall(void);
 
 #define CC_REGISTER_ARG register
 
+#define UIP_ARCH_CHKSUM 1
+
 #endif /* __UIP_CONF_H__ */

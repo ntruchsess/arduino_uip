@@ -21,6 +21,9 @@
 #define SPI_MISO                                12
 #define SPI_SCK                                 13
 
+#define UIP_OUTPACKETOFFSET 1
+#define UIP_INPACKETOFFSET 0
+
 /*
  * Empfangen von ip-header, arp etc...
  * wenn tcp/udp -> tcp/udp-callback -> assign new packet to connection
@@ -40,6 +43,7 @@ private:
 
   uint8_t readOp(uint8_t op, uint8_t address);
   void writeOp(uint8_t op, uint8_t address, uint8_t data);
+  uint16_t setReadPtr(memhandle handle, memaddress position, uint16_t len);
   void readBuffer(uint16_t len, uint8_t* data);
   void writeBuffer(uint16_t len, uint8_t* data);
   void setBank(uint8_t address);
@@ -58,13 +62,9 @@ public:
   memhandle receivePacket();
   void sendPacket(memhandle handle);
   uint16_t readPacket(memhandle handle, memaddress position, uint8_t* buffer, uint16_t len);
-  void resizePacket(memhandle, memaddress position);
-  void resizePacket(memhandle, memaddress position, memaddress size);
-  void freePacket(memhandle handle);
-  memhandle newPacket(uint16_t len);
   uint16_t writePacket(memhandle handle, memaddress position, uint8_t* buffer, uint16_t len);
   void copyPacket(memhandle dest, memaddress dest_pos, memhandle src, memaddress src_pos, uint16_t len);
-  uint16_t packetLen(memhandle handle);
+  uint16_t chksum(uint16_t sum, memhandle handle, memaddress pos, uint16_t len);
 };
 
 #endif /* ENC28J60NETWORK_H_ */
