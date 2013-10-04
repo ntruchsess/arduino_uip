@@ -1,12 +1,15 @@
 #include "UIPUdp.h"
 #include "UIPEthernet.h"
 
+#ifdef UIPETHERNET_DEBUG_UDP
+#include "HardwareSerial.h"
+#endif
+
 extern "C" {
 #include "uip-conf.h"
 #include "uip.h"
 #include "uip_arp.h"
 }
-#include "mempool.h"
 
 #define UIP_ARPHDRSIZE 42
 #define UDPBUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
@@ -15,8 +18,7 @@ extern "C" {
 UIPUDP::UIPUDP()
 {
   _uip_udp_conn = NULL;
-  appdata.rport = 0;
-  appdata.ripaddr = IPAddress();
+  memset(&appdata,0,sizeof(appdata));
 }
 
 // initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
@@ -279,7 +281,15 @@ void UIPUDP::uip_callback(uip_udp_appstate_t *s) {
                   *packet = UIPEthernet.in_packet;
                   UIPEthernet.in_packet = NOBLOCK;
                   //discard Linklevel and IP and udp-header and any trailing bytes:
-                  UIPEthernet.network.resizeBlock(*packet,UIP_UDP_PHYH_LEN,UDPBUF->udplen);
+                  UIPEthernet.network.resizeBlock(*packet,UIP_UDP_PHYH_LEN,ntohs(UDPBUF->udplen)-UIP_UDPH_LEN);
+#ifdef UIPETHERNET_DEBUG_UDP
+                  Serial.print("udp, uip_newdata received packet: ");
+                  Serial.print(*packet);
+                  Serial.print(", slot: ");
+                  Serial.print(i);
+                  Serial.print(", size: ");
+                  Serial.println(UIPEthernet.network.blockSize(*packet));
+#endif
                   break;
                 }
               packet++;
@@ -290,16 +300,34 @@ void UIPUDP::uip_callback(uip_udp_appstate_t *s) {
       if (uip_poll() && data->send)
         {
           //set uip_slen (uip private) by calling uip_udp_send
-          uip_udp_send(data->out_pos);
+#ifdef UIPETHERNET_DEBUG_UDP
+          Serial.print("udp, uip_poll preparing packet to send: ");
+          Serial.print(data->packet_out);
+          Serial.print(", size: ");
+          Serial.println(UIPEthernet.network.blockSize(data->packet_out));
+#endif
+          UIPEthernet.uip_packet = data->packet_out;
+          UIPEthernet.uip_hdrlen = UIP_UDP_PHYH_LEN;
+          UIPEthernet.packetstate |= UIPETHERNET_SENDPACKET;
+          uip_udp_send(data->out_pos - (UIP_OUTPACKETOFFSET + UIP_UDP_PHYH_LEN));
           uip_process(UIP_UDP_SEND_CONN); //generate udp + ip headers
           uip_arp_out(); //add arp
-          if (uip_len != UIP_ARPHDRSIZE) //arp found ethaddr for ip (otherwise packet is replaced by arp-request)
+          if (uip_len == UIP_ARPHDRSIZE)
             {
-              UIPEthernet.uip_packet = data->packet_out;
-              UIPEthernet.uip_hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
-              UIPEthernet.packetstate |= UIPETHERNET_SENDPACKET;
+              UIPEthernet.packetstate &= ~UIPETHERNET_SENDPACKET;
+#ifdef UIPETHERNET_DEBUG_UDP
+              Serial.println("udp, uip_poll results in ARP-packet");
+#endif
             }
-          data->send = false;
+          else
+          //arp found ethaddr for ip (otherwise packet is replaced by arp-request)
+            {
+              data->send = false;
+#ifdef UIPETHERNET_DEBUG_UDP
+              Serial.print("udp, uip_packet to send: ");
+              Serial.println(data->packet_out);
+#endif
+            }
         }
     }
 }
