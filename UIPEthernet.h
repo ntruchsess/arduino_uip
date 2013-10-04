@@ -26,12 +26,20 @@
 #include <Arduino.h>
 #include "Dhcp.h"
 #include "IPAddress.h"
+#include "utility/Enc28J60Network.h"
 
 extern "C"
 {
-#include "utility/timer.h"
+#include "utility/uip_timer.h"
 #include "utility/uip.h"
 }
+
+//#define UIPETHERNET_DEBUG
+//#define UIPETHERNET_DEBUG_CHKSUM
+//#define UIPETHERNET_DEBUG_UDP
+
+#define UIPETHERNET_FREEPACKET 1
+#define UIPETHERNET_SENDPACKET 2
 
 #define uip_ip_addr(addr, ip) do { \
                      ((u16_t *)(addr))[0] = HTONS(((ip[0]) << 8) | (ip[1])); \
@@ -47,14 +55,13 @@ extern "C"
                               uip_ethaddr.addr[4] = eaddr[4];\
                               uip_ethaddr.addr[5] = eaddr[5];} while(0)
 
-#define UIP_STREAM_READ 1;
-#define UIP_STREAM_WRITE 2;
-
 typedef void
 (*fn_uip_cb_t)(uip_tcp_appstate_t *conn);
 
 typedef void
 (*fn_uip_udp_cb_t)(uip_udp_appstate_t *conn);
+
+#define BUF ((struct uip_tcpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 class UIPEthernetClass
 {
@@ -87,29 +94,23 @@ private:
   IPAddress _dnsServerAddress;
   DhcpClass* _dhcp;
 
-  struct timer periodic_timer;
+  struct uip_timer periodic_timer;
   fn_uip_cb_t fn_uip_cb;
   fn_uip_udp_cb_t fn_uip_udp_cb;
-  uint16_t packetlen;
-  uint16_t num;
-  uint8_t left;
-  uint8_t packetstream;
-  uint8_t hdrlen;
 
-  void stream_packet_read_start();
-  void stream_packet_read_end();
+  memhandle in_packet;
+  memhandle uip_packet;
+  uint8_t uip_hdrlen;
+  uint8_t packetstate;
 
-  void stream_packet_write_start();
-  void stream_packet_write_end();
-
-  int stream_packet_read(unsigned char* buffer, size_t len);
-  int stream_packet_peek();
-  void stream_packet_write(unsigned char* buffer, size_t len);
+  Enc28J60Network network;
 
   void init(const uint8_t* mac);
   void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
 
   void tick();
+
+  boolean network_send();
 
   void uip_callback();
 
@@ -124,6 +125,18 @@ private:
   friend class UIPClient;
 
   friend class UIPUDP;
+
+  static uint16_t chksum(uint16_t sum, const uint8_t* data, uint16_t len);
+  static uint16_t ipchksum(void);
+  uint16_t upper_layer_chksum(uint8_t proto);
+
+  friend uint16_t uip_ipchksum(void);
+  friend uint16_t uip_tcpchksum(void);
+  friend uint16_t uip_udpchksum(void);
+
+#if UIP_CONF_IPV6
+  uint16_t uip_icmp6chksum(void);
+#endif /* UIP_CONF_IPV6 */
 };
 
 extern UIPEthernetClass UIPEthernet;

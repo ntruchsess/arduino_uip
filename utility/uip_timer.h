@@ -1,5 +1,31 @@
+/**
+ * \defgroup timer Timer library
+ *
+ * The timer library provides functions for setting, resetting and
+ * restarting timers, and for checking if a timer has expired. An
+ * application must "manually" check if its timers have expired; this
+ * is not done automatically.
+ *
+ * A timer is declared as a \c struct \c timer and all access to the
+ * timer is made by a pointer to the declared timer.
+ *
+ * \note The timer library uses the \ref clock "Clock library" to
+ * measure time. Intervals should be specified in the format used by
+ * the clock library.
+ *
+ * @{
+ */
+
+
+/**
+ * \file
+ * Timer library header file.
+ * \author
+ * Adam Dunkels <adam@sics.se>
+ */
+
 /*
- * Copyright (c) 2004-2005, Swedish Institute of Computer Science.
+ * Copyright (c) 2004, Swedish Institute of Computer Science.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,47 +56,31 @@
  *
  * Author: Adam Dunkels <adam@sics.se>
  *
- * $Id: lc-switch.h,v 1.2 2006/06/12 08:00:30 adam Exp $
+ * $Id: timer.h,v 1.3 2006/06/11 21:46:39 adam Exp $
  */
+#ifndef __UIP_TIMER_H__
+#define __UIP_TIMER_H__
+
+#include "uip_clock.h"
 
 /**
- * \addtogroup lc
- * @{
- */
-
-/**
- * \file
- * Implementation of local continuations based on switch() statment
- * \author Adam Dunkels <adam@sics.se>
+ * A timer.
  *
- * This implementation of local continuations uses the C switch()
- * statement to resume execution of a function somewhere inside the
- * function's body. The implementation is based on the fact that
- * switch() statements are able to jump directly into the bodies of
- * control structures such as if() or while() statmenets.
+ * This structure is used for declaring a timer. The timer must be set
+ * with timer_set() before it can be used.
  *
- * This implementation borrows heavily from Simon Tatham's coroutines
- * implementation in C:
- * http://www.chiark.greenend.org.uk/~sgtatham/coroutines.html
+ * \hideinitializer
  */
+struct uip_timer {
+  clock_time_t start;
+  clock_time_t interval;
+};
 
-#ifndef __LC_SWITCH_H__
-#define __LC_SWTICH_H__
+void uip_timer_set(struct uip_timer *t, clock_time_t interval);
+void uip_timer_reset(struct uip_timer *t);
+void uip_timer_restart(struct uip_timer *t);
+int uip_timer_expired(struct uip_timer *t);
 
-/* WARNING! lc implementation using switch() does not work if an
-   LC_SET() is done within another switch() statement! */
-
-/** \hideinitializer */
-typedef unsigned short lc_t;
-
-#define LC_INIT(s) s = 0;
-
-#define LC_RESUME(s) switch(s) { case 0:
-
-#define LC_SET(s) s = __LINE__; case __LINE__:
-
-#define LC_END(s) }
-
-#endif /* __LC_SWITCH_H__ */
+#endif /* __UIP_TIMER_H__ */
 
 /** @} */
