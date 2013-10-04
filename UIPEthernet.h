@@ -30,7 +30,7 @@
 
 extern "C"
 {
-#include "utility/timer.h"
+#include "utility/uip_timer.h"
 #include "utility/uip.h"
 }
 
@@ -93,7 +93,7 @@ private:
   IPAddress _dnsServerAddress;
   DhcpClass* _dhcp;
 
-  struct timer periodic_timer;
+  struct uip_timer periodic_timer;
   fn_uip_cb_t fn_uip_cb;
   fn_uip_udp_cb_t fn_uip_udp_cb;
 
