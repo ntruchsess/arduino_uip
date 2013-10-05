@@ -50,7 +50,9 @@ void loop() {
   if (((signed long)(millis() - next)) > 0)
     {
       next = millis() + 5000;
-      if (client.connect(IPAddress(192,168,0,1),5000))
+      // replace hostname with name of machine running tcpserver.pl
+      if (client.connect("server.local",5000))
+//      if (client.connect(IPAddress(192,168,0,1),5000))
         {
           while(!client)
             {

@@ -1,5 +1,6 @@
 #include "UIPUdp.h"
 #include "UIPEthernet.h"
+#include "Dns.h"
 
 #ifdef UIPETHERNET_DEBUG_UDP
 #include "HardwareSerial.h"
@@ -140,7 +141,18 @@ UIPUDP::beginPacket(IPAddress ip, uint16_t port)
 int
 UIPUDP::beginPacket(const char *host, uint16_t port)
 {
-  return 0; //TODO implement DNS
+  // Look up the host first
+  int ret = 0;
+  DNSClient dns;
+  IPAddress remote_addr;
+
+  dns.begin(UIPEthernet.dnsServerIP());
+  ret = dns.getHostByName(host, remote_addr);
+  if (ret == 1) {
+    return beginPacket(remote_addr, port);
+  } else {
+    return ret;
+  }
 }
 
 // Finish off this packet and send it
