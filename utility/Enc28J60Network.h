@@ -1,15 +1,26 @@
-/*********************************************
- * Enc28J60Network.h
- * Author: Norbert Truchsess
- * Copyright: GPL V2
- * http://www.gnu.org/licenses/gpl.html
- *
- * Based on the enc28j60.c file from the AVRlib library by Pascal Stang.
- * For AVRlib See http://www.procyonengineering.com/
- *
- * Title: Microchip ENC28J60 Ethernet Interface Driver
- * Chip type           : ATMEGA88 with ENC28J60
- *********************************************/
+/*
+ Enc28J60Network.h
+ UIPEthernet network driver for Microchip ENC28J60 Ethernet Interface.
+
+ Copyright (c) 2013 Norbert Truchsess <norbert.truchsess@t-online.de>
+ All rights reserved.
+
+ inspired by enc28j60.c file from the AVRlib library by Pascal Stang.
+ For AVRlib See http://www.procyonengineering.com/
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef ENC28J60NETWORK_H_
 #define ENC28J60NETWORK_H_
