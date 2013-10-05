@@ -253,7 +253,9 @@ boolean UIPEthernetClass::network_send()
     {
 #ifdef UIPETHERNET_DEBUG
       Serial.print("network_send uip_packet: ");
-      Serial.println(uip_packet);
+      Serial.print(uip_packet);
+      Serial.print(", hdrlen: ");
+      Serial.println(uip_hdrlen);
 #endif
       network.writePacket(uip_packet,0,&control,1);
       network.writePacket(uip_packet,UIP_OUTPACKETOFFSET,uip_buf,uip_hdrlen);

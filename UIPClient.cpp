@@ -29,6 +29,10 @@ extern "C"
 #include "UIPEthernet.h"
 #include "Dns.h"
 
+#ifdef UIPETHERNET_DEBUG_CLIENT
+#include "HardwareSerial.h"
+#endif
+
 #define UIP_TCP_PHYH_LEN UIP_LLH_LEN+UIP_IPTCPH_LEN
 
 UIPClient::UIPClient() :
@@ -121,6 +125,19 @@ newpacket:
             goto ready;
           u->out_pos = 0;
         }
+#ifdef UIPETHERNET_DEBUG_CLIENT
+      Serial.print("UIPClient.write: writePacket(");
+      Serial.print(*p);
+      Serial.print(") pos: ");
+      Serial.print(u->out_pos);
+      Serial.print(", buf[");
+      Serial.print(size-remain);
+      Serial.print("-");
+      Serial.print(remain);
+      Serial.print("]: '");
+      Serial.write((uint8_t*)buf+size-remain,remain);
+      Serial.println("'");
+#endif
       written = UIPEthernet.network.writePacket(*p,u->out_pos,(uint8_t*)buf+size-remain,remain);
       remain -= written;
       u->out_pos+=written;
@@ -281,8 +298,12 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
     {
       if (u->close)
         uip_close();
-      if (uip_newdata())
+      if (uip_newdata() && uip_len > 0)
         {
+#ifdef UIPETHERNET_DEBUG_CLIENT
+          Serial.print("UIPClient uip_newdata, uip_len:");
+          Serial.println(uip_len);
+#endif
           uint8_t i = u->packet_in_end;
           if (u->packets_in[i] != NOBLOCK)
             {
@@ -302,6 +323,9 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
 finish_newdata:
       if (uip_acked())
         {
+#ifdef UIPETHERNET_DEBUG_CLIENT
+          Serial.println("UIPClient uip_acked");
+#endif
           memhandle *p = &u->packets_out[u->packet_out_start];
           if (*p != NOBLOCK)
             {
@@ -312,6 +336,9 @@ finish_newdata:
         }
       if (uip_poll() || uip_rexmit())
         {
+#ifdef UIPETHERNET_DEBUG_CLIENT
+          Serial.println("UIPClient uip_poll");
+#endif
           memhandle p = u->packets_out[u->packet_out_start];
           if (p != NOBLOCK)
             {
