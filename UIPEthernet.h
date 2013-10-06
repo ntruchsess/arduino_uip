@@ -20,8 +20,9 @@
 #ifndef UIPETHERNET_H
 #define UIPETHERNET_H
 
+#include "ethernet_comp.h"
 #include <Arduino.h>
-#include "Dhcp.h"
+#include "utility/Dhcp.h"
 #include "IPAddress.h"
 #include "utility/Enc28J60Network.h"
 

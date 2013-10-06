@@ -24,8 +24,8 @@ extern "C"
 #import "uip_arp.h"
 #import "string.h"
 }
-#include "UIPClient.h"
 #include "UIPEthernet.h"
+#include "UIPClient.h"
 #include "Dns.h"
 
 #ifdef UIPETHERNET_DEBUG_CLIENT

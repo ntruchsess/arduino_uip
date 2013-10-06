@@ -20,6 +20,7 @@
 #ifndef UIPCLIENT_H
 #define UIPCLIENT_H
 
+#include "ethernet_comp.h"
 #import "Client.h"
 #import "utility/mempool.h"
 

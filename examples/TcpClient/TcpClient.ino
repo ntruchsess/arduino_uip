@@ -20,27 +20,27 @@
 // The connection_data struct needs to be defined in an external file.
 #include <UIPClient.h>
 
-UIPClient client;
+EthernetClient client;
 signed long next;
 
 void setup() {
 
   Serial.begin(9600);
 
-  UIPEthernet.set_uip_callback(&UIPClient::uip_callback);
-  UIPEthernet.set_uip_udp_callback(&UIPUDP::uip_callback);
+  Ethernet.set_uip_callback(&EthernetClient::uip_callback);
+  Ethernet.set_uip_udp_callback(&EthernetUDP::uip_callback);
 
   uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
-  UIPEthernet.begin(mac);
+  Ethernet.begin(mac);
 
   Serial.print("localIP: ");
-  Serial.println(UIPEthernet.localIP());
+  Serial.println(Ethernet.localIP());
   Serial.print("subnetMask: ");
-  Serial.println(UIPEthernet.subnetMask());
+  Serial.println(Ethernet.subnetMask());
   Serial.print("gatewayIP: ");
-  Serial.println(UIPEthernet.gatewayIP());
+  Serial.println(Ethernet.gatewayIP());
   Serial.print("dnsServerIP: ");
-  Serial.println(UIPEthernet.dnsServerIP());
+  Serial.println(Ethernet.dnsServerIP());
 
   next = 0;
 }

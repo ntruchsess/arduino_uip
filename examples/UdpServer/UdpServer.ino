@@ -18,17 +18,17 @@
 // The connection_data struct needs to be defined in an external file.
 #include <UIPUdp.h>
 
-UIPUDP udp;
+EthernetUDP udp;
 
 void setup() {
 
   Serial.begin(9600);
 
-  UIPEthernet.set_uip_udp_callback(&UIPUDP::uip_callback);
+  Ethernet.set_uip_udp_callback(&EthernetUDP::uip_callback);
 
   uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
 
-  UIPEthernet.begin(mac,IPAddress(192,168,0,6));
+  Ethernet.begin(mac,IPAddress(192,168,0,6));
 
   int success = udp.begin(5000);
 

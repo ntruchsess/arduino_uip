@@ -20,6 +20,7 @@
 #ifndef UIPUDP_H
 #define UIPUDP_H
 
+#include "ethernet_comp.h"
 #include "Arduino.h"
 #include <Udp.h>
 #include "utility/mempool.h"

@@ -23,18 +23,18 @@
 #include <UIPServer.h>
 #include <UIPClient.h>
 
-UIPServer server = UIPServer(1000);
+EthernetServer server = EthernetServer(1000);
 
 void setup()
 {
   Serial.begin(9600);
 
-  UIPEthernet.set_uip_callback(&UIPClient::uip_callback);
+  Ethernet.set_uip_callback(&EthernetClient::uip_callback);
 
   uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
   IPAddress myIP(192,168,0,6);
 
-  UIPEthernet.begin(mac,myIP);
+  Ethernet.begin(mac,myIP);
 
   server.begin();
 }
@@ -43,7 +43,7 @@ void loop()
 {
   size_t size;
 
-  if (UIPClient client = server.available())
+  if (EthernetClient client = server.available())
     {
       while((size = client.available()) > 0)
         {
