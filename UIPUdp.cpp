@@ -39,6 +39,7 @@ UIPUDP::UIPUDP()
 {
   _uip_udp_conn = NULL;
   memset(&appdata,0,sizeof(appdata));
+  UIPEthernet.set_uip_udp_callback(&UIPUDP::uip_callback);
 }
 
 // initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use

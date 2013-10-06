@@ -23,7 +23,7 @@ extern "C" {
 }
 
 UIPServer::UIPServer(uint16_t port) : _port(htons(port)) {
-
+  UIPEthernet.set_uip_callback(&UIPClient::uip_callback);
 }
 
 UIPClient UIPServer::available() {

@@ -116,6 +116,7 @@ public:
   uint16_t
   remotePort();
 
+private:
   static void uip_callback(uip_udp_appstate_t *s);
 };
 

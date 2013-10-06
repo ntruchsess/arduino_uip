@@ -37,6 +37,7 @@ extern "C"
 UIPClient::UIPClient() :
     _uip_conn(NULL)
 {
+  UIPEthernet.set_uip_callback(&UIPClient::uip_callback);
 }
 
 UIPClient::UIPClient(struct uip_conn* conn) :

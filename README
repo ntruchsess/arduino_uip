@@ -1,5 +1,4 @@
-This is UIPEthernet version 1.0, a wrapper library around uIP, which provides the 
-Arduino with TCP/IP connectivity for the enc28j60 ethernet chip.
+This is UIPEthernet version 1.0, a wrapper library around uIP, which provides the Arduino with TCP/IP connectivity for the enc28j60 ethernet chip.
 
 This library is written by Norbert Truchsess <norbert.truchsess@t-online.de>
 
@@ -37,7 +36,7 @@ For more information visit:
     
  - Arduino Ethernet library description 
     http://arduino.cc/en/Reference/Ethernet
-    (Arduino_uip uses the same API as that, just prepend the classnames by 'UIP' as in 'UIPEthernet')
+    (Arduino_uip uses the same API as that, just include "UIPEthernet.h", "UIPClient.h", "UIPServer.h" and "UIPUDP.h" instead of the stock "Ethernet.h", "EthernetClient.h", "EthernetServer.h " and "EthernetUDP.h")
     
  - uIP API reference:
     http://www.sics.se/~adam/uip/uip-1.0-refman/
@@ -116,8 +115,6 @@ utility/uip_arp.h
 utility/uip_arp.c
 utility/uip_arch.h
 utility/uip.h
-utility/uiplib.h
-utility/uiplib.c
 utility/uipopt.h
 
 Copyright (c) 2001-2003, Adam Dunkels <adam@sics.se>, <adam@dunkels.com>.
@@ -150,12 +147,8 @@ SUCH DAMAGE.
 --------------
 
 uip-conf.h
-utility/uip-split.h
-utility/uip-split.c
 utility/uip-neighbor.h
 utility/uip-neighbor.c
-utility/uip-fw.h
-utility/uip-fw.c
 utility/uip_timer.h
 utility/uip_timer.c
 utility/uip_clock.h

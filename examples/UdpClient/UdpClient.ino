@@ -26,8 +26,6 @@ void setup() {
 
   Serial.begin(9600);
 
-  Ethernet.set_uip_udp_callback(&EthernetUDP::uip_callback);
-
   uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
 
   Ethernet.begin(mac,IPAddress(192,168,0,6));

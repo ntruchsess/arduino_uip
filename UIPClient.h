@@ -62,7 +62,6 @@ public:
   int read();
   int peek();
   void flush();
-  static void uip_callback(uip_tcp_appstate_t *s);
 
 private:
   UIPClient(struct uip_conn *_conn);
@@ -73,6 +72,7 @@ private:
   static int _available(struct uip_conn*);
 
   friend class UIPServer;
+  static void uip_callback(uip_tcp_appstate_t *s);
 };
 
 #endif

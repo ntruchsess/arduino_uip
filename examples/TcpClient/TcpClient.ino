@@ -27,9 +27,6 @@ void setup() {
 
   Serial.begin(9600);
 
-  Ethernet.set_uip_callback(&EthernetClient::uip_callback);
-  Ethernet.set_uip_udp_callback(&EthernetUDP::uip_callback);
-
   uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
   Ethernet.begin(mac);
 
@@ -51,8 +48,8 @@ void loop() {
     {
       next = millis() + 5000;
       // replace hostname with name of machine running tcpserver.pl
-      if (client.connect("server.local",5000))
-//      if (client.connect(IPAddress(192,168,0,1),5000))
+//      if (client.connect("server.local",5000))
+      if (client.connect(IPAddress(192,168,0,1),5000))
         {
           while(!client)
             {
