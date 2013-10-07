@@ -25,6 +25,9 @@
 #include "utility/Dhcp.h"
 #include "IPAddress.h"
 #include "utility/Enc28J60Network.h"
+#include "UIPClient.h"
+#include "UIPServer.h"
+#include "UIPUdp.h"
 
 extern "C"
 {
