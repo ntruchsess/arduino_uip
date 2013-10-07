@@ -32,17 +32,29 @@ extern "C" {
 //#define UIP_SOCKET_NUMPACKETS UIP_RECEIVE_WINDOW/UIP_TCP_MSS+1
 #define UIP_SOCKET_NUMPACKETS 5
 
+#define UIP_CLIENT_CLOSE 1
+#define UIP_CLIENT_CLOSED 2
+#define UIP_CLIENT_RESTART 4
+
 typedef uint8_t uip_socket_ptr;
 
-typedef struct uip_userdata {
-  memaddress out_pos;
+typedef struct {
+  uint8_t state;
   memhandle packets_in[UIP_SOCKET_NUMPACKETS];
+  uip_socket_ptr packet_in_start;
+  uip_socket_ptr packet_in_end;
+  uint16_t lport;        /**< The local TCP port, in network byte order. */
+} uip_userdata_closed_t;
+
+typedef struct {
+  uint8_t state;
+  memhandle packets_in[UIP_SOCKET_NUMPACKETS];
+  uip_socket_ptr packet_in_start;
+  uip_socket_ptr packet_in_end;
   memhandle packets_out[UIP_SOCKET_NUMPACKETS];
-  uint8_t packet_in_start;
-  uint8_t packet_in_end;
-  uint8_t packet_out_start;
-  uint8_t packet_out_end;
-  bool close;
+  uip_socket_ptr packet_out_start;
+  uip_socket_ptr packet_out_end;
+  memaddress out_pos;
 } uip_userdata_t;
 
 class UIPClient : public Client {
@@ -65,12 +77,18 @@ public:
 
 private:
   UIPClient(struct uip_conn *_conn);
+  UIPClient(uip_userdata_closed_t* closed_conn);
 
   struct uip_conn *_uip_conn;
 
-  static size_t _write(struct uip_conn*,const uint8_t *buf, size_t size);
-  static int _available(struct uip_conn*);
+  uip_userdata_t* data;
 
+  static uip_userdata_closed_t* closed_conns[UIP_CONNS];
+
+  static size_t _write(struct uip_conn*,const uint8_t *buf, size_t size);
+  static int _available(uip_userdata_t *);
+
+  friend class UIPEthernetClass;
   friend class UIPServer;
   static void uip_callback(uip_tcp_appstate_t *s);
 };
