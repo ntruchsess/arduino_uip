@@ -47,15 +47,12 @@ void loop() {
   if (((signed long)(millis() - next)) > 0)
     {
       next = millis() + 5000;
+      Serial.println("Client connect");
       // replace hostname with name of machine running tcpserver.pl
 //      if (client.connect("server.local",5000))
       if (client.connect(IPAddress(192,168,0,1),5000))
         {
-          while(!client)
-            {
-              if (next - millis() < 0)
-                goto close;
-            }
+          Serial.println("Client connected");
           client.println("DATA from Client");
           while(client.available()==0)
             {
@@ -72,7 +69,10 @@ void loop() {
             }
 close:
           //disconnect client
+          Serial.println("Client disconnect");
           client.stop();
         }
+      else
+        Serial.println("Client connect failed");
     }
 }

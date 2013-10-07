@@ -58,6 +58,7 @@ private:
   uint8_t bank;
 
   void checkDMA();
+  void copyDMA(uint16_t dest, uint16_t src, uint16_t len);
 
   uint8_t readOp(uint8_t op, uint8_t address);
   void writeOp(uint8_t op, uint8_t address, uint8_t data);
@@ -77,7 +78,7 @@ protected:
 public:
   Enc28J60Network();
   void init(uint8_t* macaddr);
-  memhandle receivePacket();
+  memhandle receivePacket(uint8_t* buffer, uint16_t len);
   void sendPacket(memhandle handle);
   uint16_t readPacket(memhandle handle, memaddress position, uint8_t* buffer, uint16_t len);
   uint16_t writePacket(memhandle handle, memaddress position, uint8_t* buffer, uint16_t len);

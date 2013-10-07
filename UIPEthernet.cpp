@@ -156,7 +156,8 @@ UIPEthernetClass::tick()
 {
   if (in_packet == NOBLOCK)
     {
-      in_packet = network.receivePacket();
+      in_packet = network.receivePacket((uint8_t*)uip_buf,UIP_BUFSIZE);
+      packetstate = (UIPETHERNET_BUFFERREAD | UIPETHERNET_FREEPACKET);
 #ifdef UIPETHERNET_DEBUG
       if (in_packet != NOBLOCK)
         {
@@ -165,13 +166,15 @@ UIPEthernetClass::tick()
         }
 #endif
     }
+  else
+    packetstate = UIPETHERNET_FREEPACKET;
   if (in_packet != NOBLOCK)
     {
       uip_len = network.blockSize(in_packet-UIP_INPACKETOFFSET);
-      packetstate = UIPETHERNET_FREEPACKET;
       if (uip_len > 0)
         {
-          network.readPacket(in_packet,UIP_INPACKETOFFSET,(uint8_t*)uip_buf,UIP_BUFSIZE);
+          if (!(packetstate & UIPETHERNET_BUFFERREAD))
+            network.readPacket(in_packet,UIP_INPACKETOFFSET,(uint8_t*)uip_buf,UIP_BUFSIZE);
           if (ETH_HDR ->type == HTONS(UIP_ETHTYPE_IP))
             {
               uip_packet = in_packet;
@@ -200,7 +203,7 @@ UIPEthernetClass::tick()
                 }
             }
         }
-      if (in_packet != NOBLOCK && ((packetstate & UIPETHERNET_FREEPACKET) > 0))
+      if (in_packet != NOBLOCK && (packetstate & UIPETHERNET_FREEPACKET))
         {
 #ifdef UIPETHERNET_DEBUG
           Serial.print("freeing packet: ");
@@ -246,7 +249,7 @@ UIPEthernetClass::tick()
 boolean UIPEthernetClass::network_send()
 {
   uint8_t control = 0; //TODO this belongs to Enc28J60Network!
-  if ((packetstate & UIPETHERNET_SENDPACKET) > 0)
+  if (packetstate & UIPETHERNET_SENDPACKET)
     {
 #ifdef UIPETHERNET_DEBUG
       Serial.print("network_send uip_packet: ");
@@ -443,16 +446,16 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
       sum = network.chksum(
           sum,
           uip_packet,
-          UIP_IPH_LEN + UIP_LLH_LEN + upper_layer_memlen + ((packetstate & UIPETHERNET_SENDPACKET) > 0 ? UIP_OUTPACKETOFFSET : UIP_INPACKETOFFSET),
+          UIP_IPH_LEN + UIP_LLH_LEN + upper_layer_memlen + ((packetstate & UIPETHERNET_SENDPACKET) ? UIP_OUTPACKETOFFSET : UIP_INPACKETOFFSET),
           upper_layer_len - upper_layer_memlen
       );
 #ifdef UIPETHERNET_DEBUG_CHKSUM
       Serial.print("chksum uip_packet(");
       Serial.print(uip_packet);
       Serial.print(")[");
-      Serial.print(UIP_IPH_LEN + UIP_LLH_LEN + upper_layer_memlen + ((packetstate & UIPETHERNET_SENDPACKET) > 0 ? UIP_OUTPACKETOFFSET : UIP_INPACKETOFFSET));
+      Serial.print(UIP_IPH_LEN + UIP_LLH_LEN + upper_layer_memlen + ((packetstate & UIPETHERNET_SENDPACKET) ? UIP_OUTPACKETOFFSET : UIP_INPACKETOFFSET));
       Serial.print("-");
-      Serial.print(UIP_IPH_LEN + UIP_LLH_LEN + ((packetstate & UIPETHERNET_SENDPACKET) > 0 ? UIP_OUTPACKETOFFSET : UIP_INPACKETOFFSET) + upper_layer_len);
+      Serial.print(UIP_IPH_LEN + UIP_LLH_LEN + ((packetstate & UIPETHERNET_SENDPACKET) ? UIP_OUTPACKETOFFSET : UIP_INPACKETOFFSET) + upper_layer_len);
       Serial.print("]: ");
       Serial.println(htons(sum),HEX);
 #endif

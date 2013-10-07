@@ -162,7 +162,7 @@ void Enc28J60Network::init(uint8_t* macaddr)
 }
 
 memhandle
-Enc28J60Network::receivePacket()
+Enc28J60Network::receivePacket(uint8_t* buffer, uint16_t size)
 {
   uint16_t rxstat;
   uint16_t len;
@@ -200,8 +200,13 @@ Enc28J60Network::receivePacket()
       // ignore if no space left (try again on next call to receivePacket)
       if (handle != NOBLOCK)
         {
+          checkDMA();
+          uint16_t dmaPtr = readPtr;
+          readBuffer(len > size ? size : len,buffer);
+          // decrement the packet counter indicate we are done with this packet
+          writeOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
           nextPacketPtr = nextPacketPtrLocal;
-          memblock_mv_cb(blocks[handle].begin, readPtr, len);
+          copyDMA(blocks[handle].begin, dmaPtr, len);
           dmaStatus |= NEWPACKET;
         }
     }
@@ -282,7 +287,12 @@ void
 Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
 {
   checkDMA();
+  copyDMA(dest,src,len);
+}
 
+void
+Enc28J60Network::copyDMA(uint16_t dest, uint16_t src, uint16_t len)
+{
   setBank(ECON1);
 
   // calculate address of last byte
@@ -341,8 +351,6 @@ Enc28J60Network::checkDMA()
           // This frees the memory we just read out
           writeReg(ERXRDPTL, (nextPacketPtr));
           writeReg(ERXRDPTH, (nextPacketPtr) >> 8);
-          // decrement the packet counter indicate we are done with this packet
-          writeOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
         }
       dmaStatus = 0;
     }
@@ -485,6 +493,7 @@ uint16_t
 Enc28J60Network::chksum(uint16_t sum, memhandle handle, memaddress pos, uint16_t len)
 {
   uint16_t t;
+  checkDMA();
   len = setReadPtr(handle, pos, len)-1;
   readPtr+=len;
   CSACTIVE;

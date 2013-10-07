@@ -1,9 +1,9 @@
 #ifndef ETHERNET_COMP_H
 #define ETHERNET_COMP_H
 
-#define UIPEthernet Ethernet
-#define UIPClient EthernetClient
-#define UIPServer EthernetServer
-#define UIPUDP EthernetUDP
+#define Ethernet UIPEthernet
+#define EthernetClient UIPClient
+#define EthernetServer UIPServer
+#define EthernetUDP UIPUDP
 
 #endif
