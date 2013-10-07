@@ -419,9 +419,12 @@ finish_newdata:
                 {
                   UIPEthernet.uip_hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
                   UIPEthernet.uip_packet = UIPEthernet.network.allocBlock(UIPEthernet.uip_hdrlen+UIP_OUTPACKETOFFSET+uip_len);
-                  UIPEthernet.network.copyPacket(UIPEthernet.uip_packet,UIPEthernet.uip_hdrlen+UIP_OUTPACKETOFFSET,p,0,uip_len);
-                  UIPEthernet.packetstate |= UIPETHERNET_SENDPACKET;
-                  uip_send(uip_appdata,uip_len);
+                  if (UIPEthernet.uip_packet != NOBLOCK)
+                    {
+                      UIPEthernet.network.copyPacket(UIPEthernet.uip_packet,UIPEthernet.uip_hdrlen+UIP_OUTPACKETOFFSET,p,0,uip_len);
+                      UIPEthernet.packetstate |= UIPETHERNET_SENDPACKET;
+                      uip_send(uip_appdata,uip_len);
+                    }
                   return;
                 }
             }

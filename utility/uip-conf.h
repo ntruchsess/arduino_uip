@@ -92,8 +92,8 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
-//#define UIP_CONF_BUFFER_SIZE     98
-#define UIP_CONF_BUFFER_SIZE     118
+#define UIP_CONF_BUFFER_SIZE     98
+//#define UIP_CONF_BUFFER_SIZE     118
 
 /**
  * The TCP maximum segment size.
@@ -102,7 +102,7 @@ typedef unsigned short uip_stats_t;
  * UIP_BUFSIZE - UIP_LLH_LEN - UIP_TCPIP_HLEN.
  */
 
-//#define UIP_CONF_TCP_MSS 128
+#define UIP_CONF_TCP_MSS 512
 
 /**
  * The size of the advertised receiver's window.
@@ -113,7 +113,7 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
-//#define UIP_CONF_RECEIVE_WINDOW 512
+#define UIP_CONF_RECEIVE_WINDOW 512
 
 /**
  * CPU byte order.
