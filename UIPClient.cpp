@@ -108,6 +108,7 @@ UIPClient::stop()
         }
       data->packet_in_start = data->packet_in_end = 0;
       flush();
+      data = NULL;
     }
   _uip_conn = NULL;
   UIPEthernet.tick();
@@ -122,7 +123,8 @@ UIPClient::connected()
 UIPClient::operator bool()
 {
   UIPEthernet.tick();
-  return (data || (_uip_conn && (data = (uip_userdata_t*)_uip_conn->appstate.user)));
+  return (data || (_uip_conn && (data = (uip_userdata_t*)_uip_conn->appstate.user)))
+      && (!(data->state & UIP_CLIENT_CLOSED) || data->packets_in[data->packet_in_start] != NOBLOCK);
 }
 
 size_t
@@ -278,7 +280,7 @@ void
 UIPClient::flush()
 {
   uip_userdata_t *u;
-  while(_uip_conn && (uip_conn->tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED && (u = (uip_userdata_t *)_uip_conn->appstate.user) && data->packets_out[data->packet_out_start] != NOBLOCK)
+  while(_uip_conn && (uip_conn->tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED && (u = (uip_userdata_t *)_uip_conn->appstate.user) && u->packets_out[data->packet_out_start] != NOBLOCK)
     {
       UIPEthernet.tick();
     }
@@ -346,7 +348,7 @@ reject_newdata:
         }
 finish_newdata:
       // If the connection has been closed, save received but unread data.
-      if (uip_closed())
+      if (uip_closed() || uip_timedout())
         {
           // drop outgoing packets not sent yet:
           memhandle *p = &u->packets_out[0];
@@ -359,25 +361,20 @@ finish_newdata:
                 }
               p++;
             }
-          // save unread incoming packets:
-          if (u->packets_in[u->packet_in_start] != NOBLOCK)
+          uip_userdata_closed_t** closed_conn_data = &UIPClient::closed_conns[0];
+          for (uip_socket_ptr i = 0; i < UIP_CONNS; i++)
             {
-              uip_userdata_closed_t** closed_conn_data = &UIPClient::closed_conns[0];
-              for (uip_socket_ptr i = 0; i < UIP_CONNS; i++)
+              if (!*closed_conn_data)
                 {
-                  if (!*closed_conn_data)
-                    {
-                      *closed_conn_data = (uip_userdata_closed_t*)u;
-                      (*closed_conn_data)->lport = uip_conn->lport;
-                      (*closed_conn_data)->state |= UIP_CLIENT_CLOSED;
-                      goto nodata;
-                    }
-                  closed_conn_data++;
+                  *closed_conn_data = (uip_userdata_closed_t*)u;
+                  (*closed_conn_data)->lport = uip_conn->lport;
+                  (*closed_conn_data)->state |= UIP_CLIENT_CLOSED;
+                  break;
                 }
+              closed_conn_data++;
             }
-          // If no unread data or no free slot to save data to is found, disassociate and drop appdata.
+          // disassociate appdata.
           s->user = NULL;
-          free(u);
           goto nodata;
         }
       if (uip_acked())
@@ -427,11 +424,16 @@ finish_newdata:
             }
         }
       // don't close connection unless all outgoing packets are sent
-      if ((u->state & UIP_CLIENT_CLOSE) && u->packets_out[u->packet_out_start] == NOBLOCK)
+      if (u->state & UIP_CLIENT_CLOSE)
         {
-          free(u);
-          s->user = NULL;
-          uip_close();
+          if (u->packets_out[u->packet_out_start] == NOBLOCK)
+            {
+              free(u);
+              s->user = NULL;
+              uip_close();
+            }
+          else
+            uip_stop();
         }
     }
 nodata:
