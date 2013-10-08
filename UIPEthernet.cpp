@@ -156,8 +156,7 @@ UIPEthernetClass::tick()
 {
   if (in_packet == NOBLOCK)
     {
-      in_packet = network.receivePacket((uint8_t*)uip_buf,UIP_BUFSIZE);
-      packetstate = (UIPETHERNET_BUFFERREAD | UIPETHERNET_FREEPACKET);
+      in_packet = network.receivePacket();
 #ifdef UIPETHERNET_DEBUG
       if (in_packet != NOBLOCK)
         {
@@ -166,15 +165,13 @@ UIPEthernetClass::tick()
         }
 #endif
     }
-  else
-    packetstate = UIPETHERNET_FREEPACKET;
   if (in_packet != NOBLOCK)
     {
-      uip_len = network.blockSize(in_packet-UIP_INPACKETOFFSET);
+      packetstate = UIPETHERNET_FREEPACKET;
+      uip_len = network.blockSize(in_packet)-UIP_INPACKETOFFSET;
       if (uip_len > 0)
         {
-          if (!(packetstate & UIPETHERNET_BUFFERREAD))
-            network.readPacket(in_packet,UIP_INPACKETOFFSET,(uint8_t*)uip_buf,UIP_BUFSIZE);
+          network.readPacket(in_packet,UIP_INPACKETOFFSET,(uint8_t*)uip_buf,UIP_BUFSIZE);
           if (ETH_HDR ->type == HTONS(UIP_ETHTYPE_IP))
             {
               uip_packet = in_packet;
@@ -209,7 +206,7 @@ UIPEthernetClass::tick()
           Serial.print("freeing packet: ");
           Serial.println(in_packet);
 #endif
-          network.freeBlock(in_packet);
+          network.freePacket();
           in_packet = NOBLOCK;
         }
     }

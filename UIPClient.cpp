@@ -315,36 +315,33 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
           Serial.print("UIPClient uip_newdata, uip_len:");
           Serial.println(uip_len);
 #endif
-          if (uip_len == 0 || (u->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED)))
+          if (uip_len && !(u->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED)))
             {
-              UIPEthernet.network.freeBlock(UIPEthernet.in_packet);
-              UIPEthernet.in_packet = NOBLOCK;
-            }
-          else
-            {
-              uint8_t i = u->packet_in_end;
-              //if it's not the first packet
-              if (u->packets_in[i] != NOBLOCK)
+              memhandle newPacket = UIPEthernet.network.allocBlock(uip_len);
+              if (newPacket != NOBLOCK)
                 {
-                  i = i == UIP_SOCKET_NUMPACKETS-1 ? 0 : i+1;
-                  //if this is the last slot stop this connection
-                  if ((i == UIP_SOCKET_NUMPACKETS-1 ? 0 : i+1) == u->packet_in_start)
+                  uint8_t i = u->packet_in_end;
+                  //if it's not the first packet
+                  if (u->packets_in[i] != NOBLOCK)
                     {
-                      uip_stop();
+                      i = i == UIP_SOCKET_NUMPACKETS-1 ? 0 : i+1;
+                      //if this is the last slot stop this connection
+                      if ((i == UIP_SOCKET_NUMPACKETS-1 ? 0 : i+1) == u->packet_in_start)
+                        {
+                          uip_stop();
+                        }
+                      //if there's no free slot left omit loosing this packet and (again) stop this connection
+                      else if (i == u->packet_in_start)
+                        goto reject_newdata;
                     }
-                  //if there's no free slot left omit loosing this packet and (again) stop this connection
-                  else if (i == u->packet_in_start)
-                    {
-                      UIPEthernet.packetstate &= ~UIPETHERNET_FREEPACKET;
-                      uip_stop();
-                      goto finish_newdata;
-                    }
+                  UIPEthernet.network.copyPacket(newPacket,0,UIPEthernet.in_packet,((uint8_t*)uip_appdata)-uip_buf+UIP_INPACKETOFFSET,uip_len);
+                  u->packets_in[i] = newPacket;
+                  u->packet_in_end = i;
+                  goto finish_newdata;
                 }
-              uint16_t hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
-              UIPEthernet.network.resizeBlock(UIPEthernet.in_packet,hdrlen+UIP_INPACKETOFFSET,uip_len);
-              u->packets_in[i] = UIPEthernet.in_packet;
-              UIPEthernet.in_packet = NOBLOCK;
-              u->packet_in_end = i;
+reject_newdata:
+              UIPEthernet.packetstate &= ~UIPETHERNET_FREEPACKET;
+              uip_stop();
             }
         }
 finish_newdata:

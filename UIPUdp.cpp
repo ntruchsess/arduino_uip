@@ -356,19 +356,22 @@ void UIPUDP::uip_callback(uip_udp_appstate_t *s) {
             {
               if (*packet == NOBLOCK)
                 {
-                  *packet = UIPEthernet.in_packet;
-                  UIPEthernet.in_packet = NOBLOCK;
-                  //discard Linklevel and IP and udp-header and any trailing bytes:
-                  UIPEthernet.network.resizeBlock(*packet,UIP_UDP_PHYH_LEN,ntohs(UDPBUF->udplen)-UIP_UDPH_LEN);
-#ifdef UIPETHERNET_DEBUG_UDP
-                  Serial.print("udp, uip_newdata received packet: ");
-                  Serial.print(*packet);
-                  Serial.print(", slot: ");
-                  Serial.print(i);
-                  Serial.print(", size: ");
-                  Serial.println(UIPEthernet.network.blockSize(*packet));
-#endif
-                  break;
+                  *packet = UIPEthernet.network.allocBlock(ntohs(UDPBUF->udplen)-UIP_UDPH_LEN);
+                  //if we are unable to allocate memory the packet is dropped. udp doesn't guarantee packet delivery
+                  if (*packet != NOBLOCK)
+                    {
+                      //discard Linklevel and IP and udp-header and any trailing bytes:
+                      UIPEthernet.network.copyPacket(*packet,0,UIPEthernet.in_packet,UIP_UDP_PHYH_LEN,UIPEthernet.network.blockSize(*packet));
+    #ifdef UIPETHERNET_DEBUG_UDP
+                      Serial.print("udp, uip_newdata received packet: ");
+                      Serial.print(*packet);
+                      Serial.print(", slot: ");
+                      Serial.print(i);
+                      Serial.print(", size: ");
+                      Serial.println(UIPEthernet.network.blockSize(*packet));
+    #endif
+                      break;
+                    }
                 }
               packet++;
               i++;

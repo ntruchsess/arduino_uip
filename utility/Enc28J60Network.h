@@ -42,6 +42,8 @@
 #define UIP_OUTPACKETOFFSET 1
 #define UIP_INPACKETOFFSET 0
 
+#define UIP_RECEIVEBUFFERHANDLE 0xff
+
 /*
  * Empfangen von ip-header, arp etc...
  * wenn tcp/udp -> tcp/udp-callback -> assign new packet to connection
@@ -51,14 +53,15 @@ class Enc28J60Network : public MemoryPool
 {
 
 private:
-  uint8_t dmaStatus;
+  uint8_t status;
   uint16_t nextPacketPtr;
   uint16_t readPtr;
   uint16_t writePtr;
   uint8_t bank;
 
+  struct memblock receivePkt;
+
   void checkDMA();
-  void copyDMA(uint16_t dest, uint16_t src, uint16_t len);
 
   uint8_t readOp(uint8_t op, uint8_t address);
   void writeOp(uint8_t op, uint8_t address, uint8_t data);
@@ -78,7 +81,9 @@ protected:
 public:
   Enc28J60Network();
   void init(uint8_t* macaddr);
-  memhandle receivePacket(uint8_t* buffer, uint16_t len);
+  memhandle receivePacket();
+  void freePacket();
+  memaddress blockSize(memhandle handle);
   void sendPacket(memhandle handle);
   uint16_t readPacket(memhandle handle, memaddress position, uint8_t* buffer, uint16_t len);
   uint16_t writePacket(memhandle handle, memaddress position, uint8_t* buffer, uint16_t len);

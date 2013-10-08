@@ -32,7 +32,8 @@ extern "C" {
 }
 
 #define DMARUNNING 1
-#define NEWPACKET 2
+#define DMANEWPACKET 2
+#define NEWPACKETFREED 4
 
 // set CS to 0 = active
 #define CSACTIVE digitalWrite(ENC28J60_CONTROL_CS, LOW)
@@ -44,7 +45,7 @@ extern "C" {
 Enc28J60Network::Enc28J60Network() :
     MemoryPool(TXSTART_INIT, TXSTOP_INIT-TXSTART_INIT+1),
     nextPacketPtr(0xffff),
-    dmaStatus(0),
+    status(0),
     bank(0xff),
     readPtr(0xffff),
     writePtr(0xffff)
@@ -162,55 +163,52 @@ void Enc28J60Network::init(uint8_t* macaddr)
 }
 
 memhandle
-Enc28J60Network::receivePacket(uint8_t* buffer, uint16_t size)
+Enc28J60Network::receivePacket()
 {
   uint16_t rxstat;
   uint16_t len;
-  uint16_t nextPacketPtrLocal;
   // check if a packet has been received and buffered
   //if( !(readReg(EIR) & EIR_PKTIF) ){
   // The above does not work. See Rev. B4 Silicon Errata point 6.
-  if (readReg(EPKTCNT) == 0)
+  if (readReg(EPKTCNT) != 0)
     {
-      return (NOBLOCK);
-    }
-
-  readPtr = nextPacketPtr+6;
-  memhandle handle = NOBLOCK;
-  // Set the read pointer to the start of the received packet
-  writeReg(ERDPTL, (nextPacketPtr));
-  writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (nextPacketPtr) >> 8);
-  // read the next packet pointer
-  nextPacketPtrLocal = readOp(ENC28J60_READ_BUF_MEM, 0);
-  nextPacketPtrLocal |= readOp(ENC28J60_READ_BUF_MEM, 0) << 8;
-  // read the packet length (see datasheet page 43)
-  len = readOp(ENC28J60_READ_BUF_MEM, 0);
-  len |= readOp(ENC28J60_READ_BUF_MEM, 0) << 8;
-  len -= 4; //remove the CRC count
-  // read the receive status (see datasheet page 43)
-  rxstat = readOp(ENC28J60_READ_BUF_MEM, 0);
-  rxstat |= readOp(ENC28J60_READ_BUF_MEM, 0) << 8;
-  // check CRC and symbol errors (see datasheet page 44, table 7-3):
-  // The ERXFCON.CRCEN is set by default. Normally we should not
-  // need to check this.
-  if ((rxstat & 0x80) != 0)
-    {
-      // copy the packet from the receive buffer
-      handle = allocBlock(len);
-      // ignore if no space left (try again on next call to receivePacket)
-      if (handle != NOBLOCK)
+      readPtr = nextPacketPtr+6;
+      // Set the read pointer to the start of the received packet
+      writeReg(ERDPTL, (nextPacketPtr));
+      writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (nextPacketPtr) >> 8);
+      // read the next packet pointer
+      nextPacketPtr = readOp(ENC28J60_READ_BUF_MEM, 0);
+      nextPacketPtr |= readOp(ENC28J60_READ_BUF_MEM, 0) << 8;
+      // read the packet length (see datasheet page 43)
+      len = readOp(ENC28J60_READ_BUF_MEM, 0);
+      len |= readOp(ENC28J60_READ_BUF_MEM, 0) << 8;
+      len -= 4; //remove the CRC count
+      // read the receive status (see datasheet page 43)
+      rxstat = readOp(ENC28J60_READ_BUF_MEM, 0);
+      rxstat |= readOp(ENC28J60_READ_BUF_MEM, 0) << 8;
+      // decrement the packet counter indicate we are done with this packet
+      writeOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
+      // check CRC and symbol errors (see datasheet page 44, table 7-3):
+      // The ERXFCON.CRCEN is set by default. Normally we should not
+      // need to check this.
+      if ((rxstat & 0x80) != 0)
         {
-          checkDMA();
-          uint16_t dmaPtr = readPtr;
-          readBuffer(len > size ? size : len,buffer);
-          // decrement the packet counter indicate we are done with this packet
-          writeOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
-          nextPacketPtr = nextPacketPtrLocal;
-          copyDMA(blocks[handle].begin, dmaPtr, len);
-          dmaStatus |= NEWPACKET;
+          receivePkt.begin = readPtr;
+          receivePkt.size = len;
+          return UIP_RECEIVEBUFFERHANDLE;
         }
+      // Move the RX read pointer to the start of the next received packet
+      // This frees the memory we just read out
+      writeReg(ERXRDPTL, (nextPacketPtr));
+      writeReg(ERXRDPTH, (nextPacketPtr) >> 8);
     }
-  return (handle);
+  return (NOBLOCK);
+}
+
+memaddress
+Enc28J60Network::blockSize(memhandle handle)
+{
+  return handle == UIP_RECEIVEBUFFERHANDLE ? receivePkt.size : blocks[handle].size;
 }
 
 void
@@ -228,15 +226,16 @@ Enc28J60Network::sendPacket(memhandle handle)
   // send the contents of the transmit buffer onto the network
   writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
   // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
-  if( (readReg(EIR) & EIR_TXERIF) ){
-          writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
-  }
+  if( (readReg(EIR) & EIR_TXERIF) )
+    {
+      writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
+    }
 }
 
 uint16_t
 Enc28J60Network::setReadPtr(memhandle handle, memaddress position, uint16_t len)
 {
-  memblock *packet = &blocks[handle];
+  memblock *packet = handle == UIP_RECEIVEBUFFERHANDLE ? &receivePkt : &blocks[handle];
   memaddress start = packet->begin + position;
   if (readPtr != start)
     {
@@ -279,20 +278,17 @@ void
 Enc28J60Network::copyPacket(memhandle dest_pkt, memaddress dest_pos, memhandle src_pkt, memaddress src_pos, uint16_t len)
 {
   memblock *dest = &blocks[dest_pkt];
-  memblock *src = &blocks[src_pkt];
+  memblock *src = src_pkt == UIP_RECEIVEBUFFERHANDLE ? &receivePkt : &blocks[src_pkt];
   memblock_mv_cb(dest->begin+dest_pos,src->begin+src_pos,len);
+  if (src_pkt == UIP_RECEIVEBUFFERHANDLE)
+    status |= DMANEWPACKET;
 }
 
 void
 Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
 {
   checkDMA();
-  copyDMA(dest,src,len);
-}
 
-void
-Enc28J60Network::copyDMA(uint16_t dest, uint16_t src, uint16_t len)
-{
   setBank(ECON1);
 
   // calculate address of last byte
@@ -332,28 +328,45 @@ Enc28J60Network::copyDMA(uint16_t dest, uint16_t src, uint16_t len)
   /* 4. Start the DMA copy by setting ECON1.DMAST. */
   writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_DMAST);
 
-  dmaStatus = DMARUNNING;
+  status |= DMARUNNING;
 
 }
 
 void
 Enc28J60Network::checkDMA()
 {
-  if (dmaStatus)
+  if (status & DMARUNNING)
     {
       // wait until runnig DMA is completed
+      while (readOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_DMAST);
 
-      while (readOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_DMAST)
-        ;
-      if (dmaStatus & NEWPACKET)
+      if (status & DMANEWPACKET)
         {
           // Move the RX read pointer to the start of the next received packet
           // This frees the memory we just read out
           writeReg(ERXRDPTL, (nextPacketPtr));
           writeReg(ERXRDPTH, (nextPacketPtr) >> 8);
+          status = NEWPACKETFREED;
         }
-      dmaStatus = 0;
+      else
+        status &= ~DMARUNNING;
     }
+}
+
+void
+Enc28J60Network::freePacket()
+{
+  if (status & DMANEWPACKET)
+    // wait until runnig DMA is completed
+    while (readOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_DMAST);
+  if (!(status & NEWPACKETFREED))
+    {
+      // Move the RX read pointer to the start of the next received packet
+      // This frees the memory we just read out
+      writeReg(ERXRDPTL, (nextPacketPtr));
+      writeReg(ERXRDPTH, (nextPacketPtr) >> 8);
+    }
+  status = 0;
 }
 
 uint8_t
