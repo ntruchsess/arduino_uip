@@ -1,11 +1,15 @@
-This is UIPEthernet version 1.0, a wrapper library around uIP, which provides the Arduino with TCP/IP connectivity for the enc28j60 ethernet chip.
+This is UIPEthernet version 1.0
+
+An plugin-replacement of the stock Arduino Ethernet library for ENC28J60 shields and breakout boards. Full support for persistent (streaming) TCP-connections and UDP (Client and Server each), ARP, ICMP, DHCP and DNS. 
+Just include 'UIPEthernet.h' instead of 'Ethernet.h' and use all your code written for the stock Arduino Ethernet lib!
+
+UIPEthernet is written as a wrapper around the mature uIP Stack by Adam Dunkels, which provides the low-level implementation for all supported protocols. To overcome the memory-constrains (a 'regular' uIP-application does all processing in RAM) the ENC28J60 internal memory is used for all stream buffers (in and out). Only 200-400 Bytes of Arduinos RAM are used (depending on the number of concurrently open connections). As of Flash-memory a ATmega368-based Arduino is the minimum requirenment.
 
 This library is written by Norbert Truchsess <norbert.truchsess@t-online.de>
 
-This library was inspired by the SerialIP implementation by Adam Nielsen <malvineous@shikadi.net>, actually I took this code as a starting point, but in the latest versions there are very few lines left.
+uIP was written by Adam Dunkels of the Networked Embedded Systems group at the Swedish Institute of Computer Science.
 
-uIP was written by Adam Dunkels of the Networked Embedded Systems group at the 
-Swedish Institute of Computer Science.
+This library was inspired by the SerialIP implementation by Adam Nielsen <malvineous@shikadi.net>, actually I took this code as a starting point, but in the latest versions there are very few lines left.
 
 Installation
 ------------
