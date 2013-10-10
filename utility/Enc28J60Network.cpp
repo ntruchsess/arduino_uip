@@ -240,7 +240,7 @@ Enc28J60Network::setReadPtr(memhandle handle, memaddress position, uint16_t len)
   if (readPtr != start)
     {
       writeReg(ERDPTL, (start));
-      writeReg(ERDPTH, (start) >> 8);
+      writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (start) >> 8);
       readPtr = start;
     }
   if (len > packet->size - position)
@@ -265,7 +265,7 @@ Enc28J60Network::writePacket(memhandle handle, memaddress position, uint8_t* buf
   if (writePtr != start)
     {
       writeReg(EWRPTL, (start));
-      writeReg(EWRPTH, (start) >> 8);
+      writeOp(ENC28J60_WRITE_CTRL_REG, EWRPTH, (start) >> 8);
       writePtr = start;
     }
   if (len > packet->size - position)
@@ -289,47 +289,90 @@ Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
 {
   checkDMA();
 
-  setBank(ECON1);
+  //as ENC28J60 DMA is unable to copy single bytes:
+  if (len == 1)
+    {
+      if (readPtr == src)
+        {
+          readPtr++;
+        }
+      else
+        {
+          readPtr = src+1;
+          // Set the read pointer to the start of the received packet
+          writeReg(ERDPTL, (src));
+          writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (src) >> 8);
+        }
+      if (writePtr == dest)
+        {
+          writePtr++;
+        }
+      else
+        {
+          writePtr = dest+1;
+          writeReg(EWRPTL, (dest));
+          writeOp(ENC28J60_WRITE_CTRL_REG, EWRPTH, (dest) >> 8);
+        }
+      uint8_t data;
+      CSACTIVE;
+      // issue read command
+      SPDR = ENC28J60_READ_BUF_MEM;
+      waitspi();
+      // read data
+      SPDR = 0x00;
+      waitspi();
+      data = SPDR;
+      // issue write command
+      SPDR = ENC28J60_WRITE_BUF_MEM;
+      waitspi();
+      // write data
+      SPDR = data;
+      waitspi();
+      CSPASSIVE;
+    }
+  else
+    {
+      setBank(ECON1);
 
-  // calculate address of last byte
-  len += src - 1;
+      // calculate address of last byte
+      len += src - 1;
 
-  /*  1. Appropriately program the EDMAST, EDMAND
-   and EDMADST register pairs. The EDMAST
-   registers should point to the first byte to copy
-   from, the EDMAND registers should point to the
-   last byte to copy and the EDMADST registers
-   should point to the first byte in the destination
-   range. The destination range will always be
-   linear, never wrapping at any values except from
-   8191 to 0 (the 8-Kbyte memory boundary).
-   Extreme care should be taken when
-   programming the start and end pointers to
-   prevent a never ending DMA operation which
-   would overwrite the entire 8-Kbyte buffer.
-   */
-  writeOp(ENC28J60_WRITE_CTRL_REG, EDMASTL, (src));
-  writeOp(ENC28J60_WRITE_CTRL_REG, EDMASTH, (src) >> 8);
-  writeOp(ENC28J60_WRITE_CTRL_REG, EDMADSTL, (dest));
-  writeOp(ENC28J60_WRITE_CTRL_REG, EDMADSTH, (dest) >> 8);
+      /*  1. Appropriately program the EDMAST, EDMAND
+       and EDMADST register pairs. The EDMAST
+       registers should point to the first byte to copy
+       from, the EDMAND registers should point to the
+       last byte to copy and the EDMADST registers
+       should point to the first byte in the destination
+       range. The destination range will always be
+       linear, never wrapping at any values except from
+       8191 to 0 (the 8-Kbyte memory boundary).
+       Extreme care should be taken when
+       programming the start and end pointers to
+       prevent a never ending DMA operation which
+       would overwrite the entire 8-Kbyte buffer.
+       */
+      writeOp(ENC28J60_WRITE_CTRL_REG, EDMASTL, (src));
+      writeOp(ENC28J60_WRITE_CTRL_REG, EDMASTH, (src) >> 8);
+      writeOp(ENC28J60_WRITE_CTRL_REG, EDMADSTL, (dest));
+      writeOp(ENC28J60_WRITE_CTRL_REG, EDMADSTH, (dest) >> 8);
 
-  if ((src <= RXSTOP_INIT)&& (len > RXSTOP_INIT))len -= (RXSTOP_INIT-RXSTART_INIT);
-  writeOp(ENC28J60_WRITE_CTRL_REG, EDMANDL, (len));
-  writeOp(ENC28J60_WRITE_CTRL_REG, EDMANDH, (len) >> 8);
+      if ((src <= RXSTOP_INIT)&& (len > RXSTOP_INIT))len -= (RXSTOP_INIT-RXSTART_INIT);
+      writeOp(ENC28J60_WRITE_CTRL_REG, EDMANDL, (len));
+      writeOp(ENC28J60_WRITE_CTRL_REG, EDMANDH, (len) >> 8);
 
-  /*
-   2. If an interrupt at the end of the copy process is
-   desired, set EIE.DMAIE and EIE.INTIE and
-   clear EIR.DMAIF.
+      /*
+       2. If an interrupt at the end of the copy process is
+       desired, set EIE.DMAIE and EIE.INTIE and
+       clear EIR.DMAIF.
 
-   3. Verify that ECON1.CSUMEN is clear. */
-  writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_CSUMEN);
+       3. Verify that ECON1.CSUMEN is clear. */
+      writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_CSUMEN);
 
-  /* 4. Start the DMA copy by setting ECON1.DMAST. */
-  writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_DMAST);
+      /* 4. Start the DMA copy by setting ECON1.DMAST. */
+      writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_DMAST);
 
-  status |= DMARUNNING;
-
+      status |= DMARUNNING;
+    }
 }
 
 void
