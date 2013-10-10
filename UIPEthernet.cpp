@@ -326,6 +326,7 @@ UIPEthernetClass::set_uip_udp_callback(fn_uip_udp_cb_t fn)
   this->fn_uip_udp_cb = fn;
 }
 
+#if UIP_UDP
 void
 UIPEthernetClass::uip_udp_callback()
 {
@@ -337,6 +338,7 @@ UIPEthernetClass::uip_udp_callback()
       this->fn_uip_udp_cb(s);                       //->p, &s->user);
     }
 }
+#endif
 
 UIPEthernetClass UIPEthernet;
 
@@ -347,10 +349,12 @@ uipethernet_appcall(void)
   UIPEthernet.uip_callback();
 }
 
+#if UIP_UDP
 void
 uipudp_appcall(void) {
   UIPEthernet.uip_udp_callback();
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 uint16_t
@@ -425,9 +429,11 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
   case UIP_PROTO_TCP:
     upper_layer_memlen = (BUF->tcpoffset >> 4) << 2;
     break;
-  case UIP_PROTO_UDP:
+#if UIP_UDP
+    case UIP_PROTO_UDP:
     upper_layer_memlen = UIP_UDPH_LEN;
     break;
+#endif
   }
   sum = chksum(sum, &uip_buf[UIP_IPH_LEN + UIP_LLH_LEN], upper_layer_memlen);
 #ifdef UIPETHERNET_DEBUG_CHKSUM
@@ -473,10 +479,11 @@ uip_tcpchksum(void)
   return sum;
 }
 
+#if UIP_UDP
 uint16_t
 uip_udpchksum(void)
 {
   uint16_t sum = UIPEthernet.upper_layer_chksum(UIP_PROTO_UDP);
   return sum;
 }
-
+#endif

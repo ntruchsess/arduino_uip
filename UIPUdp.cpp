@@ -31,6 +31,7 @@ extern "C" {
 #include "uip_arp.h"
 }
 
+#if UIP_UDP
 #define UIP_ARPHDRSIZE 42
 #define UDPBUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
@@ -413,3 +414,4 @@ void UIPUDP::uip_callback(uip_udp_appstate_t *s) {
         }
     }
 }
+#endif
