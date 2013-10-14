@@ -97,17 +97,6 @@ UIPClient::stop()
   if (*this)
     {
       data->state |= UIP_CLIENT_CLOSE;
-      memhandle *p = &data->packets_in[0];
-      for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
-        {
-          if (*p != NOBLOCK)
-            {
-              UIPEthernet.network.freeBlock(*p);
-              *p = NOBLOCK;
-            }
-          p++;
-        }
-      data->packet_in_start = data->packet_in_end = 0;
       flush();
       data = NULL;
     }
@@ -280,10 +269,19 @@ UIPClient::peek()
 void
 UIPClient::flush()
 {
-  uip_userdata_t *u;
-  while(_uip_conn && (uip_conn->tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED && (u = (uip_userdata_t *)_uip_conn->appstate.user) && u->packets_out[data->packet_out_start] != NOBLOCK)
+  if (*this)
     {
-      UIPEthernet.tick();
+      memhandle *p = &data->packets_in[0];
+      for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
+        {
+          if (*p != NOBLOCK)
+            {
+              UIPEthernet.network.freeBlock(*p);
+              *p = NOBLOCK;
+            }
+          p++;
+        }
+      data->packet_in_start = data->packet_in_end = 0;
     }
 }
 
