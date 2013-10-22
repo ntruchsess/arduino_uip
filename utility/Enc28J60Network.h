@@ -39,10 +39,9 @@
 #define SPI_SCK         13
 #endif;
 
-#define UIP_OUTPACKETOFFSET 1
-#define UIP_INPACKETOFFSET 0
-
 #define UIP_RECEIVEBUFFERHANDLE 0xff
+
+//#define ENC28J60DEBUG
 
 /*
  * Empfangen von ip-header, arp etc...
@@ -55,8 +54,6 @@ class Enc28J60Network : public MemoryPool
 private:
   uint8_t status;
   uint16_t nextPacketPtr;
-  uint16_t readPtr;
-  uint16_t writePtr;
   uint8_t bank;
 
   struct memblock receivePkt;
@@ -66,8 +63,11 @@ private:
   uint8_t readOp(uint8_t op, uint8_t address);
   void writeOp(uint8_t op, uint8_t address, uint8_t data);
   uint16_t setReadPtr(memhandle handle, memaddress position, uint16_t len);
+  void setERXRDPT();
   void readBuffer(uint16_t len, uint8_t* data);
   void writeBuffer(uint16_t len, uint8_t* data);
+  uint8_t readByte(uint16_t addr);
+  void writeByte(uint16_t addr, uint8_t data);
   void setBank(uint8_t address);
   uint8_t readReg(uint8_t address);
   void writeReg(uint8_t address, uint8_t data);

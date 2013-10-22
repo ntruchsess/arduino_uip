@@ -31,6 +31,10 @@ extern "C" {
 #include "uip.h"
 }
 
+#ifdef ENC28J60DEBUG
+#include "HardwareSerial.h"
+#endif
+
 #define DMARUNNING 1
 #define DMANEWPACKET 2
 #define NEWPACKETFREED 4
@@ -43,12 +47,10 @@ extern "C" {
 #define waitspi() while(!(SPSR&(1<<SPIF)))
 
 Enc28J60Network::Enc28J60Network() :
-    MemoryPool(TXSTART_INIT, TXSTOP_INIT-TXSTART_INIT+1),
+    MemoryPool(TXSTART_INIT+1, TXSTOP_INIT-TXSTART_INIT), // 1 byte in between RX_STOP_INIT and pool to allow prepending of controlbyte
     nextPacketPtr(0xffff),
     status(0),
-    bank(0xff),
-    readPtr(0xffff),
-    writePtr(0xffff)
+    bank(0xff)
 {
 }
 
@@ -172,7 +174,7 @@ Enc28J60Network::receivePacket()
   // The above does not work. See Rev. B4 Silicon Errata point 6.
   if (readReg(EPKTCNT) != 0)
     {
-      readPtr = nextPacketPtr+6;
+      uint16_t readPtr = nextPacketPtr+6;
       // Set the read pointer to the start of the received packet
       writeReg(ERDPTL, (nextPacketPtr));
       writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (nextPacketPtr) >> 8);
@@ -199,10 +201,17 @@ Enc28J60Network::receivePacket()
         }
       // Move the RX read pointer to the start of the next received packet
       // This frees the memory we just read out
-      writeReg(ERXRDPTL, (nextPacketPtr));
-      writeReg(ERXRDPTH, (nextPacketPtr) >> 8);
+      setERXRDPT();
     }
   return (NOBLOCK);
+}
+
+void
+Enc28J60Network::setERXRDPT()
+{
+  uint16_t erxrdpt = nextPacketPtr == RXSTART_INIT ? RXSTOP_INIT : nextPacketPtr-1;
+  writeReg(ERXRDPTL, (erxrdpt));
+  writeReg(ERXRDPTH, (erxrdpt) >> 8);
 }
 
 memaddress
@@ -215,14 +224,37 @@ void
 Enc28J60Network::sendPacket(memhandle handle)
 {
   memblock *packet = &blocks[handle];
-  uint16_t addr = packet->begin;
+  uint16_t start = packet->begin-1;
+  uint16_t end = start + packet->size;
+
+  // backup data at control-byte position
+  uint8_t data = readByte(start);
+  // write control-byte (if not 0 anyway)
+  if (data)
+    writeByte(start, 0);
+
+#ifdef ENC28J60DEBUG
+  Serial.print("sendPacket(");
+  Serial.print(handle);
+  Serial.print(") [");
+  Serial.print(start);
+  Serial.print("-");
+  Serial.print(end);
+  Serial.println("]:");
+  for (uint16_t i=start; i<=end; i++)
+    {
+      Serial.print(readByte(i),HEX);
+      Serial.print(" ");
+    }
+  Serial.println();
+#endif
+
   // TX start
-  writeReg(ETXSTL, addr&0xFF);
-  writeReg(ETXSTH, addr>>8);
+  writeReg(ETXSTL, start&0xFF);
+  writeReg(ETXSTH, start>>8);
   // Set the TXND pointer to correspond to the packet size given
-  addr += packet->size-1;
-  writeReg(ETXNDL, addr&0xFF);
-  writeReg(ETXNDH, addr>>8);
+  writeReg(ETXNDL, end&0xFF);
+  writeReg(ETXNDH, end>>8);
   // send the contents of the transmit buffer onto the network
   writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
   // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
@@ -230,6 +262,10 @@ Enc28J60Network::sendPacket(memhandle handle)
     {
       writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
     }
+
+  //restore data on control-byte position
+  if (data)
+    writeByte(start, data);
 }
 
 uint16_t
@@ -237,12 +273,10 @@ Enc28J60Network::setReadPtr(memhandle handle, memaddress position, uint16_t len)
 {
   memblock *packet = handle == UIP_RECEIVEBUFFERHANDLE ? &receivePkt : &blocks[handle];
   memaddress start = packet->begin + position;
-  if (readPtr != start)
-    {
-      writeReg(ERDPTL, (start));
-      writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (start) >> 8);
-      readPtr = start;
-    }
+  
+  writeReg(ERDPTL, (start));
+  writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (start) >> 8);
+  
   if (len > packet->size - position)
     len = packet->size - position;
   return len;
@@ -262,16 +296,45 @@ Enc28J60Network::writePacket(memhandle handle, memaddress position, uint8_t* buf
 {
   memblock *packet = &blocks[handle];
   uint16_t start = packet->begin + position;
-  if (writePtr != start)
-    {
-      writeReg(EWRPTL, (start));
-      writeOp(ENC28J60_WRITE_CTRL_REG, EWRPTH, (start) >> 8);
-      writePtr = start;
-    }
+
+  writeReg(EWRPTL, (start));
+  writeOp(ENC28J60_WRITE_CTRL_REG, EWRPTH, (start) >> 8);
+
   if (len > packet->size - position)
     len = packet->size - position;
   writeBuffer(len, buffer);
   return len;
+}
+
+uint8_t Enc28J60Network::readByte(uint16_t addr)
+{
+  writeReg(ERDPTL, (addr));
+  writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (addr) >> 8);
+
+  CSACTIVE;
+  // issue read command
+  SPDR = ENC28J60_READ_BUF_MEM;
+  waitspi();
+  // read data
+  SPDR = 0x00;
+  waitspi();
+  CSPASSIVE;
+  return (SPDR);
+}
+
+void Enc28J60Network::writeByte(uint16_t addr, uint8_t data)
+{
+  writeReg(EWRPTL, (addr));
+  writeOp(ENC28J60_WRITE_CTRL_REG, EWRPTH, (addr) >> 8);
+
+  CSACTIVE;
+  // issue write command
+  SPDR = ENC28J60_WRITE_BUF_MEM;
+  waitspi();
+  // write data
+  SPDR = data;
+  waitspi();
+  CSPASSIVE;
 }
 
 void
@@ -292,43 +355,7 @@ Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
   //as ENC28J60 DMA is unable to copy single bytes:
   if (len == 1)
     {
-      if (readPtr == src)
-        {
-          readPtr++;
-        }
-      else
-        {
-          readPtr = src+1;
-          // Set the read pointer to the start of the received packet
-          writeReg(ERDPTL, (src));
-          writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (src) >> 8);
-        }
-      if (writePtr == dest)
-        {
-          writePtr++;
-        }
-      else
-        {
-          writePtr = dest+1;
-          writeReg(EWRPTL, (dest));
-          writeOp(ENC28J60_WRITE_CTRL_REG, EWRPTH, (dest) >> 8);
-        }
-      uint8_t data;
-      CSACTIVE;
-      // issue read command
-      SPDR = ENC28J60_READ_BUF_MEM;
-      waitspi();
-      // read data
-      SPDR = 0x00;
-      waitspi();
-      data = SPDR;
-      // issue write command
-      SPDR = ENC28J60_WRITE_BUF_MEM;
-      waitspi();
-      // write data
-      SPDR = data;
-      waitspi();
-      CSPASSIVE;
+      writeByte(dest,readByte(src));
     }
   else
     {
@@ -387,8 +414,7 @@ Enc28J60Network::checkDMA()
         {
           // Move the RX read pointer to the start of the next received packet
           // This frees the memory we just read out
-          writeReg(ERXRDPTL, (nextPacketPtr));
-          writeReg(ERXRDPTH, (nextPacketPtr) >> 8);
+          setERXRDPT();
           status = NEWPACKETFREED;
         }
       else
@@ -406,8 +432,7 @@ Enc28J60Network::freePacket()
     {
       // Move the RX read pointer to the start of the next received packet
       // This frees the memory we just read out
-      writeReg(ERXRDPTL, (nextPacketPtr));
-      writeReg(ERXRDPTH, (nextPacketPtr) >> 8);
+      setERXRDPT();
     }
   status = 0;
 }
@@ -449,7 +474,6 @@ Enc28J60Network::writeOp(uint8_t op, uint8_t address, uint8_t data)
 void
 Enc28J60Network::readBuffer(uint16_t len, uint8_t* data)
 {
-  readPtr+=len;
   CSACTIVE;
   // issue read command
   SPDR = ENC28J60_READ_BUF_MEM;
@@ -470,7 +494,6 @@ Enc28J60Network::readBuffer(uint16_t len, uint8_t* data)
 void
 Enc28J60Network::writeBuffer(uint16_t len, uint8_t* data)
 {
-  writePtr+=len;
   CSACTIVE;
   // issue write command
   SPDR = ENC28J60_WRITE_BUF_MEM;
@@ -551,7 +574,6 @@ Enc28J60Network::chksum(uint16_t sum, memhandle handle, memaddress pos, uint16_t
   uint16_t t;
   checkDMA();
   len = setReadPtr(handle, pos, len)-1;
-  readPtr+=len;
   CSACTIVE;
   // issue read command
   SPDR = ENC28J60_READ_BUF_MEM;
