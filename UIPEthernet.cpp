@@ -216,6 +216,8 @@ UIPEthernetClass::tick()
       uip_timer_reset(&periodic_timer);
       for (int i = 0; i < UIP_CONNS; i++)
         {
+          uip_packet = NOBLOCK;
+          packetstate = 0;
           uip_periodic(i);
           // If the above function invocation resulted in data that
           // should be sent out on the network, the global variable
@@ -230,6 +232,8 @@ UIPEthernetClass::tick()
 #if UIP_UDP
       for (int i = 0; i < UIP_UDP_CONNS; i++)
         {
+          uip_packet = NOBLOCK;
+          packetstate = 0;
           uip_udp_periodic(i);
           // If the above function invocation resulted in data that
           // should be sent out on the network, the global variable
