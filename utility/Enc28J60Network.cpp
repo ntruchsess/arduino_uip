@@ -37,7 +37,6 @@ extern "C" {
 
 #define DMARUNNING 1
 #define DMANEWPACKET 2
-#define NEWPACKETFREED 4
 
 // set CS to 0 = active
 #define CSACTIVE digitalWrite(ENC28J60_CONTROL_CS, LOW)
@@ -48,7 +47,6 @@ extern "C" {
 
 Enc28J60Network::Enc28J60Network() :
     MemoryPool(TXSTART_INIT+1, TXSTOP_INIT-TXSTART_INIT), // 1 byte in between RX_STOP_INIT and pool to allow prepending of controlbyte
-    nextPacketPtr(0xffff),
     status(0),
     bank(0xff)
 {
@@ -95,20 +93,15 @@ void Enc28J60Network::init(uint8_t* macaddr)
   // set receive buffer start address
   nextPacketPtr = RXSTART_INIT;
   // Rx start
-  writeReg(ERXSTL, RXSTART_INIT&0xFF);
-  writeReg(ERXSTH, RXSTART_INIT>>8);
+  writeRegPair(ERXSTL, RXSTART_INIT);
   // set receive pointer address
-  writeReg(ERXRDPTL, RXSTART_INIT&0xFF);
-  writeReg(ERXRDPTH, RXSTART_INIT>>8);
+  writeRegPair(ERXRDPTL, RXSTART_INIT);
   // RX end
-  writeReg(ERXNDL, RXSTOP_INIT&0xFF);
-  writeReg(ERXNDH, RXSTOP_INIT>>8);
+  writeRegPair(ERXNDL, RXSTOP_INIT);
   // TX start
-  writeReg(ETXSTL, TXSTART_INIT&0xFF);
-  writeReg(ETXSTH, TXSTART_INIT>>8);
+  //writeRegPair(ETXSTL, TXSTART_INIT);
   // TX end
-  writeReg(ETXNDL, TXSTOP_INIT&0xFF);
-  writeReg(ETXNDH, TXSTOP_INIT>>8);
+  //writeRegPair(ETXNDL, TXSTOP_INIT);
   // do bank 1 stuff, packet filter:
   // For broadcast packets we allow only ARP packtets
   // All other packets should be unicast only for our mac (MAADR)
@@ -121,28 +114,23 @@ void Enc28J60Network::init(uint8_t* macaddr)
   // This is hex 303F->EPMM0=0x3f,EPMM1=0x30
   //TODO define specific pattern to receive dhcp-broadcast packages instead of setting ERFCON_BCEN!
   writeReg(ERXFCON, ERXFCON_UCEN|ERXFCON_CRCEN|ERXFCON_PMEN|ERXFCON_BCEN);
-  writeReg(EPMM0, 0x3f);
-  writeReg(EPMM1, 0x30);
-  writeReg(EPMCSL, 0xf9);
-  writeReg(EPMCSH, 0xf7);
+  writeRegPair(EPMM0, 0x303f);
+  writeRegPair(EPMCSL, 0xf7f9);
   //
   //
   // do bank 2 stuff
   // enable MAC receive
-  writeReg(MACON1, MACON1_MARXEN|MACON1_TXPAUS|MACON1_RXPAUS);
-  // bring MAC out of reset
-  writeReg(MACON2, 0x00);
+  // and bring MAC out of reset (writes 0x00 to MACON2)
+  writeRegPair(MACON1, MACON1_MARXEN|MACON1_TXPAUS|MACON1_RXPAUS);
   // enable automatic padding to 60bytes and CRC operations
   writeOp(ENC28J60_BIT_FIELD_SET, MACON3, MACON3_PADCFG0|MACON3_TXCRCEN|MACON3_FRMLNEN);
   // set inter-frame gap (non-back-to-back)
-  writeReg(MAIPGL, 0x12);
-  writeReg(MAIPGH, 0x0C);
+  writeRegPair(MAIPGL, 0x0C12);
   // set inter-frame gap (back-to-back)
   writeReg(MABBIPG, 0x12);
   // Set the maximum packet size which the controller will accept
   // Do not send packets longer than MAX_FRAMELEN:
-  writeReg(MAMXFLL, MAX_FRAMELEN&0xFF);
-  writeReg(MAMXFLH, MAX_FRAMELEN>>8);
+  writeRegPair(MAMXFLL, MAX_FRAMELEN);
   // do bank 3 stuff
   // write MAC address
   // NOTE: MAC address in ENC28J60 is byte-backward
@@ -176,8 +164,7 @@ Enc28J60Network::receivePacket()
     {
       uint16_t readPtr = nextPacketPtr+6;
       // Set the read pointer to the start of the received packet
-      writeReg(ERDPTL, (nextPacketPtr));
-      writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (nextPacketPtr) >> 8);
+      writeRegPair(ERDPTL, nextPacketPtr);
       // read the next packet pointer
       nextPacketPtr = readOp(ENC28J60_READ_BUF_MEM, 0);
       nextPacketPtr |= readOp(ENC28J60_READ_BUF_MEM, 0) << 8;
@@ -209,9 +196,7 @@ Enc28J60Network::receivePacket()
 void
 Enc28J60Network::setERXRDPT()
 {
-  uint16_t erxrdpt = nextPacketPtr == RXSTART_INIT ? RXSTOP_INIT : nextPacketPtr-1;
-  writeReg(ERXRDPTL, (erxrdpt));
-  writeReg(ERXRDPTH, (erxrdpt) >> 8);
+  writeRegPair(ERXRDPTL, nextPacketPtr == RXSTART_INIT ? RXSTOP_INIT : nextPacketPtr-1);
 }
 
 memaddress
@@ -250,11 +235,9 @@ Enc28J60Network::sendPacket(memhandle handle)
 #endif
 
   // TX start
-  writeReg(ETXSTL, start&0xFF);
-  writeReg(ETXSTH, start>>8);
+  writeRegPair(ETXSTL, start);
   // Set the TXND pointer to correspond to the packet size given
-  writeReg(ETXNDL, end&0xFF);
-  writeReg(ETXNDH, end>>8);
+  writeRegPair(ETXNDL, end);
   // send the contents of the transmit buffer onto the network
   writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
   // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
@@ -274,8 +257,7 @@ Enc28J60Network::setReadPtr(memhandle handle, memaddress position, uint16_t len)
   memblock *packet = handle == UIP_RECEIVEBUFFERHANDLE ? &receivePkt : &blocks[handle];
   memaddress start = packet->begin + position;
   
-  writeReg(ERDPTL, (start));
-  writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (start) >> 8);
+  writeRegPair(ERDPTL, start);
   
   if (len > packet->size - position)
     len = packet->size - position;
@@ -297,8 +279,7 @@ Enc28J60Network::writePacket(memhandle handle, memaddress position, uint8_t* buf
   memblock *packet = &blocks[handle];
   uint16_t start = packet->begin + position;
 
-  writeReg(EWRPTL, (start));
-  writeOp(ENC28J60_WRITE_CTRL_REG, EWRPTH, (start) >> 8);
+  writeRegPair(EWRPTL, start);
 
   if (len > packet->size - position)
     len = packet->size - position;
@@ -308,8 +289,7 @@ Enc28J60Network::writePacket(memhandle handle, memaddress position, uint8_t* buf
 
 uint8_t Enc28J60Network::readByte(uint16_t addr)
 {
-  writeReg(ERDPTL, (addr));
-  writeOp(ENC28J60_WRITE_CTRL_REG, ERDPTH, (addr) >> 8);
+  writeRegPair(ERDPTL, addr);
 
   CSACTIVE;
   // issue read command
@@ -324,8 +304,7 @@ uint8_t Enc28J60Network::readByte(uint16_t addr)
 
 void Enc28J60Network::writeByte(uint16_t addr, uint8_t data)
 {
-  writeReg(EWRPTL, (addr));
-  writeOp(ENC28J60_WRITE_CTRL_REG, EWRPTH, (addr) >> 8);
+  writeRegPair(EWRPTL, addr);
 
   CSACTIVE;
   // issue write command
@@ -359,8 +338,6 @@ Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
     }
   else
     {
-      setBank(ECON1);
-
       // calculate address of last byte
       len += src - 1;
 
@@ -378,14 +355,11 @@ Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
        prevent a never ending DMA operation which
        would overwrite the entire 8-Kbyte buffer.
        */
-      writeOp(ENC28J60_WRITE_CTRL_REG, EDMASTL, (src));
-      writeOp(ENC28J60_WRITE_CTRL_REG, EDMASTH, (src) >> 8);
-      writeOp(ENC28J60_WRITE_CTRL_REG, EDMADSTL, (dest));
-      writeOp(ENC28J60_WRITE_CTRL_REG, EDMADSTH, (dest) >> 8);
+      writeRegPair(EDMASTL, src);
+      writeRegPair(EDMADSTL, dest);
 
       if ((src <= RXSTOP_INIT)&& (len > RXSTOP_INIT))len -= (RXSTOP_INIT-RXSTART_INIT);
-      writeOp(ENC28J60_WRITE_CTRL_REG, EDMANDL, (len));
-      writeOp(ENC28J60_WRITE_CTRL_REG, EDMANDH, (len) >> 8);
+      writeRegPair(EDMANDL, len);
 
       /*
        2. If an interrupt at the end of the copy process is
@@ -415,26 +389,19 @@ Enc28J60Network::checkDMA()
           // Move the RX read pointer to the start of the next received packet
           // This frees the memory we just read out
           setERXRDPT();
-          status = NEWPACKETFREED;
         }
-      else
-        status &= ~DMARUNNING;
+      status = 0;
     }
 }
 
 void
 Enc28J60Network::freePacket()
 {
+  // wait until runnig new-packet DMA is completed. This implicitly frees the packet.
   if (status & DMANEWPACKET)
-    // wait until runnig DMA is completed
-    while (readOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_DMAST);
-  if (!(status & NEWPACKETFREED))
-    {
-      // Move the RX read pointer to the start of the next received packet
-      // This frees the memory we just read out
-      setERXRDPT();
-    }
-  status = 0;
+    checkDMA();
+  else
+    setERXRDPT();
 }
 
 uint8_t
@@ -541,13 +508,22 @@ Enc28J60Network::writeReg(uint8_t address, uint8_t data)
 }
 
 void
+Enc28J60Network::writeRegPair(uint8_t address, uint16_t data)
+{
+  // set the bank
+  setBank(address);
+  // do the write
+  writeOp(ENC28J60_WRITE_CTRL_REG, address, (data&0xFF));
+  writeOp(ENC28J60_WRITE_CTRL_REG, address+1, (data) >> 8);
+}
+
+void
 Enc28J60Network::phyWrite(uint8_t address, uint16_t data)
 {
   // set the PHY register address
   writeReg(MIREGADR, address);
   // write the PHY data
-  writeReg(MIWRL, data);
-  writeReg(MIWRH, data>>8);
+  writeRegPair(MIWRL, data);
   // wait until the PHY write completes
   while(readReg(MISTAT) & MISTAT_BUSY){
     delayMicroseconds(15);

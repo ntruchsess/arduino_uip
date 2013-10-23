@@ -71,6 +71,7 @@ private:
   void setBank(uint8_t address);
   uint8_t readReg(uint8_t address);
   void writeReg(uint8_t address, uint8_t data);
+  void writeRegPair(uint8_t address, uint16_t data);
   void phyWrite(uint8_t address, uint16_t data);
   void clkout(uint8_t clk);
   uint8_t getrev(void);
