@@ -114,7 +114,7 @@ UIPClient::operator bool()
 {
   UIPEthernet.tick();
   return (data || (_uip_conn && (data = (uip_userdata_t*)_uip_conn->appstate.user)))
-      && (!(data->state & UIP_CLIENT_CLOSED) || data->packets_in[data->packet_in_start] != NOBLOCK);
+      && (!(data->state & UIP_CLIENT_CLOSED) || data->packets_in[0] != NOBLOCK);
 }
 
 size_t
@@ -138,7 +138,7 @@ UIPClient::_write(struct uip_conn* conn, const uint8_t *buf, size_t size)
     {
       int remain = size;
       uint16_t written;
-      memhandle* p = &u->packets_out[u->packet_out_end];
+      memhandle* p = _currentBlock(&u->packets_out[0]);
       if (*p == NOBLOCK)
         {
 newpacket:
@@ -165,11 +165,9 @@ newpacket:
       u->out_pos+=written;
       if (remain > 0)
         {
-          uint8_t next = u->packet_out_end == UIP_SOCKET_NUMPACKETS-1 ? 0 : u->packet_out_end+1;
-          if (next == u->packet_out_start)
+          if (p==&u->packets_out[UIP_SOCKET_NUMPACKETS-1])
             goto ready;
-          u->packet_out_end = next;
-          p = &u->packets_out[next];
+          p++;
           goto newpacket;
         }
 ready:
@@ -189,18 +187,16 @@ UIPClient::available()
 int
 UIPClient::_available(uip_userdata_t *u)
 {
-  uint8_t i = u->packet_in_start;
-  if (u->packets_in[i] == NOBLOCK)
+  memhandle* p = &u->packets_in[0];
+  if (*p == NOBLOCK)
     return 0;
   int len = 0;
-  do
+  for(memhandle* end = p+UIP_SOCKET_NUMPACKETS; p < end; p++)
     {
-      len += UIPEthernet.network.blockSize(u->packets_in[i]);
-      if (i != u->packet_in_end)
+      if(*p == NOBLOCK)
         break;
-      i = i == UIP_SOCKET_NUMPACKETS-1 ? 0 : i+1;
+      len += UIPEthernet.network.blockSize(*p);
     }
-  while (true);
   return len;
 }
 
@@ -210,7 +206,7 @@ UIPClient::read(uint8_t *buf, size_t size)
   if (*this)
     {
       int remain = size;
-      memhandle* p = &data->packets_in[data->packet_in_start];
+      memhandle* p = &data->packets_in[0];
       if (*p == NOBLOCK)
         return 0;
       int read;
@@ -220,14 +216,11 @@ UIPClient::read(uint8_t *buf, size_t size)
           if (read == UIPEthernet.network.blockSize(*p))
             {
               remain -= read;
-              UIPEthernet.network.freeBlock(*p);
-              *p = NOBLOCK;
+              _eatBlock(p);
               if (_uip_conn && uip_stopped(_uip_conn) && !(data->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED)))
                 data->state |= UIP_CLIENT_RESTART;
-              if (data->packet_in_start == data->packet_in_end)
+              if (*p == NOBLOCK)
                 return size-remain;
-              data->packet_in_start = data->packet_in_start == UIP_SOCKET_NUMPACKETS-1 ? 0 : data->packet_in_start+1;
-              p = &data->packets_in[data->packet_in_start];
             }
           else
             {
@@ -255,7 +248,7 @@ UIPClient::peek()
 {
   if (*this)
     {
-      memhandle p = data->packets_in[data->packet_in_start];
+      memhandle p = data->packets_in[0];
       if (p != NOBLOCK)
         {
           uint8_t c;
@@ -271,17 +264,7 @@ UIPClient::flush()
 {
   if (*this)
     {
-      memhandle *p = &data->packets_in[0];
-      for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
-        {
-          if (*p != NOBLOCK)
-            {
-              UIPEthernet.network.freeBlock(*p);
-              *p = NOBLOCK;
-            }
-          p++;
-        }
-      data->packet_in_start = data->packet_in_end = 0;
+      _flushBlocks(&data->packets_in[0]);
     }
 }
 
@@ -321,23 +304,24 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
               memhandle newPacket = UIPEthernet.network.allocBlock(uip_len);
               if (newPacket != NOBLOCK)
                 {
-                  uint8_t i = u->packet_in_end;
+                  memhandle* p = _currentBlock(&u->packets_in[0]);
                   //if it's not the first packet
-                  if (u->packets_in[i] != NOBLOCK)
+                  if (*p != NOBLOCK)
                     {
-                      i = i == UIP_SOCKET_NUMPACKETS-1 ? 0 : i+1;
+                      uint8_t slot = p - &u->packets_in[0];
+                      if (slot < UIP_SOCKET_NUMPACKETS-1)
+                        p++;
                       //if this is the last slot stop this connection
-                      if ((i == UIP_SOCKET_NUMPACKETS-1 ? 0 : i+1) == u->packet_in_start)
+                      if (slot >= UIP_SOCKET_NUMPACKETS-2)
                         {
                           uip_stop();
+                          //if there's no free slot left omit loosing this packet and (again) stop this connection
+                          if (slot == UIP_SOCKET_NUMPACKETS-1)
+                            goto reject_newdata;
                         }
-                      //if there's no free slot left omit loosing this packet and (again) stop this connection
-                      else if (i == u->packet_in_start)
-                        goto reject_newdata;
                     }
                   UIPEthernet.network.copyPacket(newPacket,0,UIPEthernet.in_packet,((uint8_t*)uip_appdata)-uip_buf,uip_len);
-                  u->packets_in[i] = newPacket;
-                  u->packet_in_end = i;
+                  *p = newPacket;
                   goto finish_newdata;
                 }
 reject_newdata:
@@ -350,16 +334,7 @@ finish_newdata:
       if (uip_closed() || uip_timedout())
         {
           // drop outgoing packets not sent yet:
-          memhandle *p = &u->packets_out[0];
-          for (uip_socket_ptr i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
-            {
-              if (*p != NOBLOCK)
-                {
-                  UIPEthernet.network.freeBlock(*p);
-                  *p = NOBLOCK;
-                }
-              p++;
-            }
+          _flushBlocks(&u->packets_out[0]);
           uip_userdata_closed_t** closed_conn_data = &UIPClient::closed_conns[0];
           for (uip_socket_ptr i = 0; i < UIP_CONNS; i++)
             {
@@ -381,29 +356,22 @@ finish_newdata:
 #ifdef UIPETHERNET_DEBUG_CLIENT
           Serial.println("UIPClient uip_acked");
 #endif
-          memhandle *p = &u->packets_out[u->packet_out_start];
-          if (*p != NOBLOCK)
-            {
-              UIPEthernet.network.freeBlock(*p);
-              *p = NOBLOCK;
-              u->packet_out_start = u->packet_out_start == UIP_SOCKET_NUMPACKETS-1 ? 0 : u->packet_out_start+1;
-            }
+          _eatBlock(&u->packets_out[0]);
         }
       if (uip_poll() || uip_rexmit())
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
           Serial.println("UIPClient uip_poll");
 #endif
-          memhandle p = u->packets_out[u->packet_out_start];
+          memhandle p = u->packets_out[0];
           if (p != NOBLOCK)
             {
-              if (u->packet_out_start == u->packet_out_end)
+              if (u->packets_out[1] == NOBLOCK)
                 {
                   uip_len = u->out_pos;
                   if (uip_len > 0)
                     {
                       UIPEthernet.network.resizeBlock(p,0,uip_len);
-                      u->packet_out_end = u->packet_out_end == UIP_SOCKET_NUMPACKETS-1 ? 0 : u->packet_out_end+1;
                     }
                 }
               else
@@ -425,7 +393,7 @@ finish_newdata:
       // don't close connection unless all outgoing packets are sent
       if (u->state & UIP_CLIENT_CLOSE)
         {
-          if (u->packets_out[u->packet_out_start] == NOBLOCK)
+          if (u->packets_out[0] == NOBLOCK)
             {
               free(u);
               s->user = NULL;
@@ -439,3 +407,58 @@ nodata:
   UIPEthernet.uip_packet = NOBLOCK;
   uip_len=0;
 }
+
+memhandle*
+UIPClient::_currentBlock(memhandle* block)
+{
+  for(memhandle* end = block+UIP_SOCKET_NUMPACKETS; block < end; block++)
+    if(*(block+1) == NOBLOCK)
+      break;
+  return block;
+}
+
+void
+UIPClient::_eatBlock(memhandle* block)
+{
+#ifdef UIPETHERNET_DEBUG_CLIENT
+  memhandle* start = block;
+  Serial.print("eatblock(");
+  Serial.print(*block);
+  Serial.print("): ");
+  for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
+    {
+      Serial.print(start[i]);
+      Serial.print(" ");
+    }
+  Serial.print("-> ");
+#endif
+  memhandle* end = block+(UIP_SOCKET_NUMPACKETS-1);
+  UIPEthernet.network.freeBlock(*block);
+  while(block < end)
+    *block = *((block++)+1);
+  *end = NOBLOCK;
+#ifdef UIPETHERNET_DEBUG_CLIENT
+  for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
+    {
+      Serial.print(start[i]);
+      Serial.print(" ");
+    }
+  Serial.println();
+#endif
+}
+
+void
+UIPClient::_flushBlocks(memhandle* block)
+{
+  for(memhandle* end = block+UIP_SOCKET_NUMPACKETS; block < end; block++)
+    {
+      if(*block != NOBLOCK)
+        {
+          UIPEthernet.network.freeBlock(*block);
+          *block = NOBLOCK;
+        }
+      else
+        break;
+    }
+}
+
