@@ -15,8 +15,6 @@
  */
 
 #include <UIPEthernet.h>
-// The connection_data struct needs to be defined in an external file.
-#include <UIPUdp.h>
 
 EthernetUDP udp;
 
@@ -72,7 +70,7 @@ void loop() {
       }
     while (!success);
 
-    success = udp.write("hello world from arduino");
+    success = udp.println("hello world from arduino");
 
     Serial.print("bytes written: ");
     Serial.println(success);
