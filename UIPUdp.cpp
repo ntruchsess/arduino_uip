@@ -140,8 +140,8 @@ UIPUDP::beginPacket(IPAddress ip, uint16_t port)
     {
       if (appdata.packet_out == NOBLOCK)
         {
-          appdata.packet_out = UIPEthernet.network.allocBlock(UIP_OUTPACKETOFFSET + UIP_UDP_MAXPACKETSIZE);
-          appdata.out_pos = UIP_OUTPACKETOFFSET + UIP_UDP_PHYH_LEN;
+          appdata.packet_out = UIPEthernet.network.allocBlock(UIP_UDP_MAXPACKETSIZE);
+          appdata.out_pos = UIP_UDP_PHYH_LEN;
           if (appdata.packet_out != NOBLOCK)
             return 1;
 #ifdef UIPETHERNET_DEBUG_UDP
@@ -392,7 +392,7 @@ void UIPUDP::uip_callback(uip_udp_appstate_t *s) {
           data->packet_out = NOBLOCK;
           UIPEthernet.uip_hdrlen = UIP_UDP_PHYH_LEN;
           UIPEthernet.packetstate |= UIPETHERNET_SENDPACKET;
-          uip_udp_send(data->out_pos - (UIP_OUTPACKETOFFSET + UIP_UDP_PHYH_LEN));
+          uip_udp_send(data->out_pos - (UIP_UDP_PHYH_LEN));
           uip_process(UIP_UDP_SEND_CONN); //generate udp + ip headers
           uip_arp_out(); //add arp
           if (uip_len == UIP_ARPHDRSIZE)

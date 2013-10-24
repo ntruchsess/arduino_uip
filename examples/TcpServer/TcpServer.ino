@@ -19,9 +19,6 @@
  */
 
 #include <UIPEthernet.h>
-// The connection_data struct needs to be defined in an external file.
-#include <UIPServer.h>
-#include <UIPClient.h>
 
 EthernetServer server = EthernetServer(1000);
 
@@ -51,5 +48,6 @@ void loop()
           free(msg);
         }
       client.println("DATA from Server!");
+      client.stop();
     }
 }

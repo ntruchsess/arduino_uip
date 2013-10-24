@@ -41,19 +41,13 @@ typedef uint8_t uip_socket_ptr;
 typedef struct {
   uint8_t state;
   memhandle packets_in[UIP_SOCKET_NUMPACKETS];
-  uip_socket_ptr packet_in_start;
-  uip_socket_ptr packet_in_end;
   uint16_t lport;        /**< The local TCP port, in network byte order. */
 } uip_userdata_closed_t;
 
 typedef struct {
   uint8_t state;
   memhandle packets_in[UIP_SOCKET_NUMPACKETS];
-  uip_socket_ptr packet_in_start;
-  uip_socket_ptr packet_in_end;
   memhandle packets_out[UIP_SOCKET_NUMPACKETS];
-  uip_socket_ptr packet_out_start;
-  uip_socket_ptr packet_out_end;
   memaddress out_pos;
 } uip_userdata_t;
 
@@ -87,6 +81,10 @@ private:
 
   static size_t _write(struct uip_conn*,const uint8_t *buf, size_t size);
   static int _available(uip_userdata_t *);
+
+  static memhandle * _currentBlock(memhandle* blocks);
+  static void _eatBlock(memhandle* blocks);
+  static void _flushBlocks(memhandle* blocks);
 
   friend class UIPEthernetClass;
   friend class UIPServer;

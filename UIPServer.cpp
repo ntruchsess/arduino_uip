@@ -45,7 +45,7 @@ UIPClient UIPServer::available()
     {
       if (*cc && (*cc)->lport == _port)
         {
-          if ((*cc)->packets_in[(*cc)->packet_in_start] == NOBLOCK)
+          if ((*cc)->packets_in[0] == NOBLOCK)
             {
               free(*cc);
               *cc = NULL;
