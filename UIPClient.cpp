@@ -67,7 +67,15 @@ UIPClient::connect(IPAddress ip, uint16_t port)
         {
           UIPEthernet.tick();
           if ((_uip_conn->tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED)
-            return 1;
+            {
+#ifdef UIPETHERNET_DEBUG_CLIENT
+              Serial.print("connected, state: ");
+              Serial.print(((uip_userdata_t *)_uip_conn->appstate.user)->state);
+              Serial.print(", first packet in: ");
+              Serial.println(((uip_userdata_t *)_uip_conn->appstate.user)->packets_in[0]);
+#endif
+              return 1;
+            }
         }
     }
   return 0;
@@ -94,10 +102,27 @@ UIPClient::connect(const char *host, uint16_t port)
 void
 UIPClient::stop()
 {
-  if (*this)
+  if (data)
     {
-      data->state |= UIP_CLIENT_CLOSE;
-      flush();
+      _flushBlocks(&data->packets_in[0]);
+      if (data->state & UIP_CLIENT_CLOSED)
+        {
+          uip_userdata_closed_t** cc = &UIPClient::closed_conns[0];
+          for (uint8_t i = 0; i < UIP_CONNS; i++)
+            {
+              if (*cc == (void*)data)
+                {
+                  *cc = NULL;
+                  break;
+                }
+              cc++;
+            }
+          free(data);
+        }
+      else
+        {
+          data->state |= UIP_CLIENT_CLOSE;
+        }
       data = NULL;
     }
   _uip_conn = NULL;
@@ -274,6 +299,9 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
   uip_userdata_t *u = (uip_userdata_t *) s->user;
   if (!u && uip_connected())
     {
+#ifdef UIPETHERNET_DEBUG_CLIENT
+      Serial.println("UIPClient uip_connected");
+#endif
       // We want to store some data in our connections, so allocate some space
       // for it.  The connection_data struct is defined in a separate .h file,
       // due to the way the Arduino IDE works.  (typedefs come after function
@@ -333,20 +361,26 @@ finish_newdata:
       // If the connection has been closed, save received but unread data.
       if (uip_closed() || uip_timedout())
         {
+#ifdef UIPETHERNET_DEBUG_CLIENT
+          Serial.println("UIPClient uip_closed");
+#endif
           // drop outgoing packets not sent yet:
           _flushBlocks(&u->packets_out[0]);
-          uip_userdata_closed_t** closed_conn_data = &UIPClient::closed_conns[0];
-          for (uip_socket_ptr i = 0; i < UIP_CONNS; i++)
+          if (u->packets_in[0] != NOBLOCK)
             {
-              if (!*closed_conn_data)
+              uip_userdata_closed_t** closed_conn_data = &UIPClient::closed_conns[0];
+              for (uip_socket_ptr i = 0; i < UIP_CONNS; i++)
                 {
-                  *closed_conn_data = (uip_userdata_closed_t*)u;
-                  (*closed_conn_data)->lport = uip_conn->lport;
-                  (*closed_conn_data)->state |= UIP_CLIENT_CLOSED;
-                  break;
+                  if (!*closed_conn_data)
+                    {
+                      *closed_conn_data = (uip_userdata_closed_t*)u;
+                      (*closed_conn_data)->lport = uip_conn->lport;
+                      break;
+                    }
+                  closed_conn_data++;
                 }
-              closed_conn_data++;
             }
+          u->state |= UIP_CLIENT_CLOSED;
           // disassociate appdata.
           s->user = NULL;
           goto nodata;
@@ -393,8 +427,14 @@ finish_newdata:
       // don't close connection unless all outgoing packets are sent
       if (u->state & UIP_CLIENT_CLOSE)
         {
+#ifdef UIPETHERNET_DEBUG_CLIENT
+              Serial.print("UIPClient state UIP_CLIENT_CLOSE");
+#endif
           if (u->packets_out[0] == NOBLOCK)
             {
+#ifdef UIPETHERNET_DEBUG_CLIENT
+              Serial.print("UIPClient state UIP_CLIENT_CLOSE -> free userdata");
+#endif
               free(u);
               s->user = NULL;
               uip_close();

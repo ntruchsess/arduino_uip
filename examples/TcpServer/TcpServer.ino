@@ -51,5 +51,6 @@ void loop()
           free(msg);
         }
       client.println("DATA from Server!");
+      client.stop();
     }
 }
