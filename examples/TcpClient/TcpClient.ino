@@ -17,8 +17,6 @@
  */
 
 #include <UIPEthernet.h>
-// The connection_data struct needs to be defined in an external file.
-#include <UIPClient.h>
 
 EthernetClient client;
 signed long next;

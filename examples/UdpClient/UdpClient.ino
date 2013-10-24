@@ -17,7 +17,6 @@
  */
 
 #include <UIPEthernet.h>
-#include <UIPUdp.h>
 
 EthernetUDP udp;
 unsigned long next;
