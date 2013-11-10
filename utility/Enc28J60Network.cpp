@@ -461,6 +461,9 @@ Enc28J60Network::readBuffer(uint16_t len, uint8_t* data)
 void
 Enc28J60Network::writeBuffer(uint16_t len, uint8_t* data)
 {
+  // verify there's data to send
+  if( !len ) return;
+
   CSACTIVE;
   // issue write command
   SPDR = ENC28J60_WRITE_BUF_MEM;
