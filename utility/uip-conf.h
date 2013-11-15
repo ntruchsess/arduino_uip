@@ -44,6 +44,7 @@
 #define __UIP_CONF_H__
 
 #include <inttypes.h>
+#include "uipethernet-conf.h"
 
 /**
  * 8 bit datatype
@@ -75,10 +76,11 @@ typedef unsigned short uip_stats_t;
 
 /**
  * Maximum number of TCP connections.
- *
+ * (see uipethernet-conf.h)
  * \hideinitializer
+ *
+ * #define UIP_CONF_MAX_CONNECTIONS 4
  */
-#define UIP_CONF_MAX_CONNECTIONS 4
 
 /**
  * Maximum number of listening TCP ports.
@@ -131,12 +133,13 @@ typedef unsigned short uip_stats_t;
 
 /**
  * UDP support on or off
- *
+ * (see uipethernet-conf.h)
  * \hideinitializer
+ *
+ * #define UIP_CONF_UDP             1
+ *
+ * #define UIP_CONF_UDP_CONNS       4
  */
-#define UIP_CONF_UDP             1
-
-#define UIP_CONF_UDP_CONNS       4
 
 /**
  * UDP checksums on or off
@@ -147,10 +150,11 @@ typedef unsigned short uip_stats_t;
 
 /**
  * UDP Broadcast (receive) on or off
- *
+ * (see uipethernet-conf.h)
  * \hideinitializer
+ * #define UIP_CONF_BROADCAST    1
  */
-#define UIP_CONF_BROADCAST       1
+
 
 /**
  * uIP statistics on or off

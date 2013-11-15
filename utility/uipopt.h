@@ -423,10 +423,10 @@
  * \hideinitializer
  *
  */
-#ifndef UIP_CONF_BROADCAST
-#define UIP_BROADCAST 0
-#else /* UIP_CONF_BROADCAST */
+#if UIP_UDP && UIP_CONF_BROADCAST
 #define UIP_BROADCAST UIP_CONF_BROADCAST
+#else /* UIP_CONF_BROADCAST */
+#define UIP_BROADCAST 0
 #endif /* UIP_CONF_BROADCAST */
 
 /**
