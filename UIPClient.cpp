@@ -316,11 +316,6 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
     }
   if (u)
     {
-      if (u->state & UIP_CLIENT_RESTART)
-        {
-          u->state &= ~UIP_CLIENT_RESTART;
-          uip_restart();
-        }
       if (uip_newdata())
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
@@ -358,6 +353,11 @@ reject_newdata:
             }
         }
 finish_newdata:
+      if (u->state & UIP_CLIENT_RESTART)
+        {
+          u->state &= ~UIP_CLIENT_RESTART;
+          uip_restart();
+        }
       // If the connection has been closed, save received but unread data.
       if (uip_closed() || uip_timedout())
         {
