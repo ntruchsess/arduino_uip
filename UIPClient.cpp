@@ -451,7 +451,7 @@ nodata:
 memhandle*
 UIPClient::_currentBlock(memhandle* block)
 {
-  for(memhandle* end = block+UIP_SOCKET_NUMPACKETS; block < end; block++)
+  for(memhandle* end = block+UIP_SOCKET_NUMPACKETS-1; block < end; block++)
     if(*(block+1) == NOBLOCK)
       break;
   return block;
