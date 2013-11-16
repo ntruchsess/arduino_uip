@@ -158,18 +158,30 @@ size_t
 UIPClient::_write(struct uip_conn* conn, const uint8_t *buf, size_t size)
 {
   uip_userdata_t *u;
+  int remain = size;
+  uint16_t written;
+#if UIP_ATTEMPTS_ON_WRITE > 0
+  uint16_t attempts = UIP_ATTEMPTS_ON_WRITE;
+#endif
+  repeat:
   UIPEthernet.tick();
   if (conn && (u = (uip_userdata_t *)conn->appstate.user) && !(u->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED)))
     {
-      int remain = size;
-      uint16_t written;
       memhandle* p = _currentBlock(&u->packets_out[0]);
       if (*p == NOBLOCK)
         {
 newpacket:
           *p = UIPEthernet.network.allocBlock(UIP_SOCKET_DATALEN);
           if (*p == NOBLOCK)
-            goto ready;
+            {
+#if UIP_ATTEMPTS_ON_WRITE > 0
+              if ((--attempts)>0)
+#endif
+#if UIP_ATTEMPTS_ON_WRITE != 0
+                goto repeat;
+#endif
+              goto ready;
+            }
           u->out_pos = 0;
         }
 #ifdef UIPETHERNET_DEBUG_CLIENT
@@ -191,7 +203,15 @@ newpacket:
       if (remain > 0)
         {
           if (p==&u->packets_out[UIP_SOCKET_NUMPACKETS-1])
-            goto ready;
+            {
+#if UIP_ATTEMPTS_ON_WRITE > 0
+              if ((--attempts)>0)
+#endif
+#if UIP_ATTEMPTS_ON_WRITE != 0
+                goto repeat;
+#endif
+              goto ready;
+            }
           p++;
           goto newpacket;
         }
@@ -316,11 +336,6 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
     }
   if (u)
     {
-      if (u->state & UIP_CLIENT_RESTART)
-        {
-          u->state &= ~UIP_CLIENT_RESTART;
-          uip_restart();
-        }
       if (uip_newdata())
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
@@ -358,6 +373,11 @@ reject_newdata:
             }
         }
 finish_newdata:
+      if (u->state & UIP_CLIENT_RESTART)
+        {
+          u->state &= ~UIP_CLIENT_RESTART;
+          uip_restart();
+        }
       // If the connection has been closed, save received but unread data.
       if (uip_closed() || uip_timedout())
         {
@@ -451,7 +471,7 @@ nodata:
 memhandle*
 UIPClient::_currentBlock(memhandle* block)
 {
-  for(memhandle* end = block+UIP_SOCKET_NUMPACKETS; block < end; block++)
+  for(memhandle* end = block+UIP_SOCKET_NUMPACKETS-1; block < end; block++)
     if(*(block+1) == NOBLOCK)
       break;
   return block;
