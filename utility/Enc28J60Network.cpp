@@ -47,7 +47,6 @@ extern "C" {
 
 Enc28J60Network::Enc28J60Network() :
     MemoryPool(TXSTART_INIT+1, TXSTOP_INIT-TXSTART_INIT), // 1 byte in between RX_STOP_INIT and pool to allow prepending of controlbyte
-    status(0),
     bank(0xff)
 {
 }
@@ -268,7 +267,6 @@ uint16_t
 Enc28J60Network::readPacket(memhandle handle, memaddress position, uint8_t* buffer, uint16_t len)
 {
   len = setReadPtr(handle, position, len);
-  checkDMA();
   readBuffer(len, buffer);
   return len;
 }
@@ -322,15 +320,14 @@ Enc28J60Network::copyPacket(memhandle dest_pkt, memaddress dest_pos, memhandle s
   memblock *dest = &blocks[dest_pkt];
   memblock *src = src_pkt == UIP_RECEIVEBUFFERHANDLE ? &receivePkt : &blocks[src_pkt];
   memblock_mv_cb(dest->begin+dest_pos,src->begin+src_pos,len);
-  if (src_pkt == UIP_RECEIVEBUFFERHANDLE)
-    status |= DMANEWPACKET;
+  // Move the RX read pointer to the start of the next received packet
+  // This frees the memory we just read out
+  setERXRDPT();
 }
 
 void
 Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
 {
-  checkDMA();
-
   //as ENC28J60 DMA is unable to copy single bytes:
   if (len == 1)
     {
@@ -372,35 +369,14 @@ Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
       /* 4. Start the DMA copy by setting ECON1.DMAST. */
       writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_DMAST);
 
-      status |= DMARUNNING;
-    }
-}
-
-void
-Enc28J60Network::checkDMA()
-{
-  if (status & DMARUNNING)
-    {
       // wait until runnig DMA is completed
       while (readOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_DMAST);
-
-      if (status & DMANEWPACKET)
-        {
-          // Move the RX read pointer to the start of the next received packet
-          // This frees the memory we just read out
-          setERXRDPT();
-        }
-      status = 0;
     }
 }
 
 void
 Enc28J60Network::freePacket()
 {
-  // wait until runnig new-packet DMA is completed. This implicitly frees the packet.
-  if (status & DMANEWPACKET)
-    checkDMA();
-  else
     setERXRDPT();
 }
 
@@ -548,7 +524,6 @@ uint16_t
 Enc28J60Network::chksum(uint16_t sum, memhandle handle, memaddress pos, uint16_t len)
 {
   uint16_t t;
-  checkDMA();
   len = setReadPtr(handle, pos, len)-1;
   CSACTIVE;
   // issue read command

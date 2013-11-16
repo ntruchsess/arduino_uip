@@ -52,13 +52,10 @@ class Enc28J60Network : public MemoryPool
 {
 
 private:
-  uint8_t status;
   uint16_t nextPacketPtr;
   uint8_t bank;
 
   struct memblock receivePkt;
-
-  void checkDMA();
 
   uint8_t readOp(uint8_t op, uint8_t address);
   void writeOp(uint8_t op, uint8_t address, uint8_t data);
