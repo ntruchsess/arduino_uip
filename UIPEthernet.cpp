@@ -19,7 +19,7 @@
 
 #include <Arduino.h>
 #include "UIPEthernet.h"
-#include "Enc28J60Network.h"
+#include "utility/Enc28J60Network.h"
 
 #if(defined UIPETHERNET_DEBUG || defined UIPETHERNET_DEBUG_CHKSUM)
 #include "HardwareSerial.h"
@@ -27,7 +27,7 @@
 
 extern "C"
 {
-#include "uip-conf.h"
+#include "utility/uip-conf.h"
 #include "utility/uip.h"
 #include "utility/uip_arp.h"
 #include "utility/uip_timer.h"
@@ -213,7 +213,7 @@ UIPEthernetClass::tick()
 
   if (uip_timer_expired(&periodic_timer))
     {
-      uip_timer_reset(&periodic_timer);
+      uip_timer_restart(&periodic_timer);
       for (int i = 0; i < UIP_CONNS; i++)
         {
           uip_periodic(i);
