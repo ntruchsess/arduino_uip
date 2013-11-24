@@ -19,14 +19,14 @@
 
 extern "C"
 {
-#import "uip-conf.h"
-#import "uip.h"
-#import "uip_arp.h"
+#import "utility/uip-conf.h"
+#import "utility/uip.h"
+#import "utility/uip_arp.h"
 #import "string.h"
 }
 #include "UIPEthernet.h"
 #include "UIPClient.h"
-#include "Dns.h"
+#include "utility/Dns.h"
 
 #ifdef UIPETHERNET_DEBUG_CLIENT
 #include "HardwareSerial.h"

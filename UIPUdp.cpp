@@ -19,16 +19,16 @@
 
 #include "UIPEthernet.h"
 #include "UIPUdp.h"
-#include "Dns.h"
+#include "utility/Dns.h"
 
 #ifdef UIPETHERNET_DEBUG_UDP
 #include "HardwareSerial.h"
 #endif
 
 extern "C" {
-#include "uip-conf.h"
-#include "uip.h"
-#include "uip_arp.h"
+#include "utility/uip-conf.h"
+#include "utility/uip.h"
+#include "utility/uip_arp.h"
 }
 
 #if UIP_UDP

@@ -19,7 +19,7 @@
 
 #include <Arduino.h>
 #include "UIPEthernet.h"
-#include "Enc28J60Network.h"
+#include "utility/Enc28J60Network.h"
 
 #if(defined UIPETHERNET_DEBUG || defined UIPETHERNET_DEBUG_CHKSUM)
 #include "HardwareSerial.h"
@@ -27,7 +27,7 @@
 
 extern "C"
 {
-#include "uip-conf.h"
+#include "utility/uip-conf.h"
 #include "utility/uip.h"
 #include "utility/uip_arp.h"
 #include "utility/uip_timer.h"
