@@ -19,14 +19,14 @@
 
 extern "C"
 {
-#import "uip-conf.h"
-#import "uip.h"
-#import "uip_arp.h"
+#import "utility/uip-conf.h"
+#import "utility/uip.h"
+#import "utility/uip_arp.h"
 #import "string.h"
 }
 #include "UIPEthernet.h"
 #include "UIPClient.h"
-#include "Dns.h"
+#include "utility/Dns.h"
 
 #ifdef UIPETHERNET_DEBUG_CLIENT
 #include "HardwareSerial.h"
@@ -55,34 +55,60 @@ UIPClient::UIPClient(uip_userdata_closed_t* conn_data) :
 {
 }
 
-int
-UIPClient::connect(IPAddress ip, uint16_t port)
+uip_tcpstate_t UIPClient::connectTick()
 {
-  uip_ipaddr_t ipaddr;
-  uip_ip_addr(ipaddr, ip);
-  _uip_conn = uip_connect(&ipaddr, htons(port));
-  if (_uip_conn)
-    {
-      while((_uip_conn->tcpstateflags & UIP_TS_MASK) != UIP_CLOSED)
-        {
-          UIPEthernet.tick();
-          if ((_uip_conn->tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED)
-            {
+	if((_uip_conn->tcpstateflags & UIP_TS_MASK) != UIP_CLOSED)
+	{
+		UIPEthernet.tick();
+		if ((_uip_conn->tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED)
+		{
 #ifdef UIPETHERNET_DEBUG_CLIENT
-              Serial.print("connected, state: ");
-              Serial.print(((uip_userdata_t *)_uip_conn->appstate.user)->state);
-              Serial.print(", first packet in: ");
-              Serial.println(((uip_userdata_t *)_uip_conn->appstate.user)->packets_in[0]);
+			Serial.print("connected, state: ");
+			Serial.print(((uip_userdata_t *)_uip_conn->appstate.user)->state);
+			Serial.print(", first packet in: ");
+			Serial.println(((uip_userdata_t *)_uip_conn->appstate.user)->packets_in[0]);
 #endif
-              return 1;
-            }
-        }
-    }
-  return 0;
+			return UIP_TCP_CONNECTED;
+		}
+		return UIP_TCP_CONNECTING;
+	}
+	return UIP_TCP_FAILED;
+}
+
+int UIPClient::connect(IPAddress ip, uint16_t port)
+{
+	return connect(ip, port, false);
 }
 
 int
-UIPClient::connect(const char *host, uint16_t port)
+UIPClient::connect(IPAddress ip, uint16_t port, bool noBlock)
+{
+	uip_ipaddr_t ipaddr;
+	uip_ip_addr(ipaddr, ip);
+	_uip_conn = uip_connect(&ipaddr, htons(port));
+
+	if(!_uip_conn)
+		return 0;
+	else if(noBlock)
+	{
+		// Does this need a tick right here?
+		return 1;
+	}
+
+	uip_tcpstate_t state;
+	while((state = connectTick()) != UIP_TCP_FAILED);
+	if(state != UIP_TCP_FAILED)
+		return 1;
+	return 0;
+}
+
+int UIPClient::connect(const char *host, uint16_t port)
+{
+	return connect(host, port, false);
+}
+
+int
+UIPClient::connect(const char *host, uint16_t port, bool noBlock)
 {
   // Look up the host first
   int ret = 0;
@@ -93,7 +119,7 @@ UIPClient::connect(const char *host, uint16_t port)
   dns.begin(UIPEthernet.dnsServerIP());
   ret = dns.getHostByName(host, remote_addr);
   if (ret == 1) {
-    return connect(remote_addr, port);
+    return connect(remote_addr, port, noBlock);
   }
 #endif
   return ret;

@@ -38,6 +38,13 @@ extern "C" {
 #define UIP_CLIENT_CLOSED 2
 #define UIP_CLIENT_RESTART 4
 
+typedef enum
+{
+	UIP_TCP_FAILED,
+	UIP_TCP_CONNECTING,
+	UIP_TCP_CONNECTED
+} uip_tcpstate_t;
+
 typedef uint8_t uip_socket_ptr;
 
 typedef struct {
@@ -57,6 +64,11 @@ class UIPClient : public Client {
 
 public:
   UIPClient();
+
+  uip_tcpstate_t connectTick();
+  int connect(IPAddress ip, uint16_t port, bool noBlock);
+  int connect(const char *host, uint16_t port, bool noBlock);
+
   int connect(IPAddress ip, uint16_t port);
   int connect(const char *host, uint16_t port);
   int read(uint8_t *buf, size_t size);
