@@ -213,7 +213,7 @@ UIPEthernetClass::tick()
 
   if (uip_timer_expired(&periodic_timer))
     {
-      uip_timer_reset(&periodic_timer);
+      uip_timer_restart(&periodic_timer);
       for (int i = 0; i < UIP_CONNS; i++)
         {
           uip_periodic(i);
