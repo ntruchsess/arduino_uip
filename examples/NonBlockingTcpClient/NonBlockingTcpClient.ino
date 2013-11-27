@@ -80,7 +80,16 @@ void loop() {
 
           if (client.connected())
             {
-             client.println(F("DATA from Client"));
+              Serial.println(F("this connection:"));
+              Serial.print(F("local IP: "));
+              Serial.println(Ethernet.localIP());
+              Serial.print(F("local port: "));
+              Serial.println(client.localPort());
+              Serial.print(F("remote IP: "));
+              Serial.println(client.remoteIP());
+              Serial.print(F("remote port: "));
+              Serial.println(client.remotePort());
+              client.println(F("DATA from Client"));
               while(client.available()==0)
                 {
                   if (next - millis() < 0)

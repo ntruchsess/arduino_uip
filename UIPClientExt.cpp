@@ -85,3 +85,23 @@ UIPClientExt::operator bool()
     }
   return data && (!(data->state & UIP_CLIENT_REMOTECLOSED) || data->packets_in[0] != NOBLOCK);
 }
+
+uint16_t
+UIPClientExt::localPort() {
+  if (!conn) return 0;
+  return htons(conn->lport);
+}
+
+IPAddress
+UIPClientExt::remoteIP() {
+  if (!conn) return IPAddress();
+  return ip_addr_uip(conn->ripaddr);
+}
+
+uint16_t
+UIPClientExt::remotePort() {
+  if (!conn) return 0;
+  return htons(conn->rport);
+}
+
+

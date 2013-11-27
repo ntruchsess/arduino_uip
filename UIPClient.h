@@ -111,6 +111,9 @@ public:
   void stop();
   uint8_t connected();
   operator bool();
+  uint16_t localPort();
+  IPAddress remoteIP();
+  uint16_t remotePort();
 
 private:
   struct uip_conn* conn;
