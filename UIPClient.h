@@ -34,9 +34,10 @@ extern "C" {
 #define UIP_SOCKET_NUMPACKETS 5
 #endif
 
-#define UIP_CLIENT_CLOSE 1
-#define UIP_CLIENT_CLOSED 2
-#define UIP_CLIENT_RESTART 4
+#define UIP_CLIENT_CONNECTED 1
+#define UIP_CLIENT_CLOSE 2
+#define UIP_CLIENT_CLOSED 4
+#define UIP_CLIENT_RESTART 8
 
 typedef uint8_t uip_socket_ptr;
 
@@ -73,14 +74,15 @@ public:
 
 private:
   UIPClient(struct uip_conn *_conn);
-  UIPClient(uip_userdata_closed_t* closed_conn);
+  UIPClient(uip_userdata_t* conn_data);
 
   struct uip_conn *_uip_conn;
 
   uip_userdata_t* data;
 
-  static uip_userdata_closed_t* closed_conns[UIP_CONNS];
-
+  static uip_userdata_t all_data[UIP_CONNS];
+  static uip_userdata_t* _allocateIndata();
+  
   static size_t _write(struct uip_conn*,const uint8_t *buf, size_t size);
   static int _available(uip_userdata_t *);
 

@@ -30,7 +30,20 @@ UIPServer::UIPServer(uint16_t port) : _port(htons(port))
 UIPClient UIPServer::available()
 {
   UIPEthernet.tick();
-  uip_userdata_t* u;
+  uip_userdata_t* u = &UIPClient::all_data[0];
+  for (uint8_t i = 0; i < UIP_CONNS; i++)
+    {
+      if (u->state & UIP_CLIENT_CLOSED)
+        {
+          if (u->packets_in[0] == NOBLOCK)
+            {
+              u->state = 0;
+            }
+          else
+            return UIPClient(u);
+        }
+      u++;
+    }
   for (uint8_t sock = 0; sock < UIP_CONNS; sock++)
     {
       struct uip_conn* conn = &uip_conns[sock];
@@ -39,21 +52,6 @@ UIPClient UIPServer::available()
           if (UIPClient::_available(u))
             return UIPClient(conn);
         }
-    }
-  uip_userdata_closed_t** cc = &UIPClient::closed_conns[0];
-  for (uint8_t i = 0; i < UIP_CONNS; i++)
-    {
-      if (*cc && (*cc)->lport == _port)
-        {
-          if ((*cc)->packets_in[0] == NOBLOCK)
-            {
-              free(*cc);
-              *cc = NULL;
-            }
-          else
-            return UIPClient(*cc);
-        }
-      cc++;
     }
   return UIPClient();
 }

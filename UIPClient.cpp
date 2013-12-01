@@ -34,7 +34,7 @@ extern "C"
 
 #define UIP_TCP_PHYH_LEN UIP_LLH_LEN+UIP_IPTCPH_LEN
 
-uip_userdata_closed_t* UIPClient::closed_conns[UIP_CONNS];
+uip_userdata_t UIPClient::all_data[UIP_CONNS];
 
 UIPClient::UIPClient() :
     _uip_conn(NULL),
@@ -49,9 +49,9 @@ UIPClient::UIPClient(struct uip_conn* conn) :
 {
 }
 
-UIPClient::UIPClient(uip_userdata_closed_t* conn_data) :
+UIPClient::UIPClient(uip_userdata_t* conn_data) :
     _uip_conn(NULL),
-    data((uip_userdata_t*)conn_data)
+    data(conn_data)
 {
 }
 
@@ -107,17 +107,7 @@ UIPClient::stop()
       _flushBlocks(&data->packets_in[0]);
       if (data->state & UIP_CLIENT_CLOSED)
         {
-          uip_userdata_closed_t** cc = &UIPClient::closed_conns[0];
-          for (uint8_t i = 0; i < UIP_CONNS; i++)
-            {
-              if (*cc == (void*)data)
-                {
-                  *cc = NULL;
-                  break;
-                }
-              cc++;
-            }
-          free(data);
+          data->state = 0;
         }
       else
         {
@@ -327,10 +317,9 @@ UIPClient::uip_callback(uip_tcp_appstate_t *s)
       // due to the way the Arduino IDE works.  (typedefs come after function
       // definitions.)
 
-      u = (uip_userdata_t*) malloc(sizeof(uip_userdata_t));
+      u = (uip_userdata_t*) _allocateIndata();
       if (u)
         {
-          memset(u,0,sizeof(uip_userdata_t));
           s->user = u;
         }
     }
@@ -388,17 +377,7 @@ finish_newdata:
           _flushBlocks(&u->packets_out[0]);
           if (u->packets_in[0] != NOBLOCK)
             {
-              uip_userdata_closed_t** closed_conn_data = &UIPClient::closed_conns[0];
-              for (uip_socket_ptr i = 0; i < UIP_CONNS; i++)
-                {
-                  if (!*closed_conn_data)
-                    {
-                      *closed_conn_data = (uip_userdata_closed_t*)u;
-                      (*closed_conn_data)->lport = uip_conn->lport;
-                      break;
-                    }
-                  closed_conn_data++;
-                }
+              ((uip_userdata_closed_t *)u)->lport = uip_conn->lport;
             }
           u->state |= UIP_CLIENT_CLOSED;
           // disassociate appdata.
@@ -455,7 +434,7 @@ finish_newdata:
 #ifdef UIPETHERNET_DEBUG_CLIENT
               Serial.print("UIPClient state UIP_CLIENT_CLOSE -> free userdata");
 #endif
-              free(u);
+              u->state = 0;
               s->user = NULL;
               uip_close();
             }
@@ -466,6 +445,21 @@ finish_newdata:
 nodata:
   UIPEthernet.uip_packet = NOBLOCK;
   uip_len=0;
+}
+
+uip_userdata_t *
+UIPClient::_allocateIndata()
+{
+  for (uip_userdata_t* data = &UIPClient::all_data[0];data < &UIPClient::all_data[UIP_CONNS];data++)
+    {
+      if (!data->state)
+        {
+          data->state = UIP_CLIENT_CONNECTED;
+          memset(&data->packets_in[0],0,sizeof(uip_userdata_t)-sizeof(data->state));
+          return data;
+        }
+    }
+  return NULL;
 }
 
 memhandle*
