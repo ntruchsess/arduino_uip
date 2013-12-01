@@ -168,9 +168,9 @@ typedef unsigned short uip_stats_t;
 
 typedef void* uip_tcp_appstate_t;
 
-void uipethernet_appcall(void);
+void uipclient_appcall(void);
 
-#define UIP_APPCALL uipethernet_appcall
+#define UIP_APPCALL uipclient_appcall
 
 typedef struct uipudp_state {
   void *user;

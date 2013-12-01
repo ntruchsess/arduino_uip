@@ -301,22 +301,6 @@ void UIPEthernetClass::configure(IPAddress ip, IPAddress dns, IPAddress gateway,
 }
 
 void
-UIPEthernetClass::set_uip_callback(fn_uip_cb_t fn)
-{
-  this->fn_uip_cb = fn;
-}
-
-void
-UIPEthernetClass::uip_callback()
-{
-  if (this->fn_uip_cb)
-    {
-      // The sketch wants to handle all uIP events itself, using uIP functions.
-      this->fn_uip_cb(NULL);			//->p, &s->user);
-    }
-}
-
-void
 UIPEthernetClass::set_uip_udp_callback(fn_uip_udp_cb_t fn)
 {
   this->fn_uip_udp_cb = fn;
@@ -339,11 +323,6 @@ UIPEthernetClass::uip_udp_callback()
 UIPEthernetClass UIPEthernet;
 
 // uIP callback function
-void
-uipethernet_appcall(void)
-{
-  UIPEthernet.uip_callback();
-}
 
 #if UIP_UDP
 void

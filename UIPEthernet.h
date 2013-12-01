@@ -90,7 +90,6 @@ public:
   // Set a user function to handle raw uIP events as they happen.  The
   // callback function can only use uIP functions, but it can also use uIP's
   // protosockets.
-  void set_uip_callback(fn_uip_cb_t fn);
   void set_uip_udp_callback(fn_uip_udp_cb_t fn);
 
 private:
@@ -114,10 +113,6 @@ private:
   void tick();
 
   boolean network_send();
-
-  void uip_callback();
-
-  friend void uipethernet_appcall(void);
 
   void uip_udp_callback();
 

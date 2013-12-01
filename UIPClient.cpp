@@ -39,7 +39,6 @@ uip_userdata_t UIPClient::all_data[UIP_CONNS];
 UIPClient::UIPClient() :
     data(NULL)
 {
-  UIPEthernet.set_uip_callback(&UIPClient::uip_callback);
 }
 
 UIPClient::UIPClient(uip_userdata_t* conn_data) :
@@ -294,8 +293,13 @@ UIPClient::flush()
     }
 }
 
+void uipclient_appcall(void)
+{
+  UIPClient::uip_callback();
+}
+
 void
-UIPClient::uip_callback(uip_tcp_appstate_t *s)
+UIPClient::uip_callback()
 {
   uip_userdata_t *u = (uip_userdata_t*)uip_conn->appstate;
   if (!u && uip_connected())

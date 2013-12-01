@@ -93,7 +93,10 @@ private:
 
   friend class UIPEthernetClass;
   friend class UIPServer;
-  static void uip_callback(uip_tcp_appstate_t *s);
+
+  friend void uipclient_appcall(void);
+
+  static void uip_callback();
 };
 
 #endif
