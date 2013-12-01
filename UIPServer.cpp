@@ -30,28 +30,12 @@ UIPServer::UIPServer(uint16_t port) : _port(htons(port))
 UIPClient UIPServer::available()
 {
   UIPEthernet.tick();
-  uip_userdata_t* u = &UIPClient::all_data[0];
-  for (uint8_t i = 0; i < UIP_CONNS; i++)
+  for ( uip_userdata_t* data = &UIPClient::all_data[0]; data < &UIPClient::all_data[UIP_CONNS]; data++ )
     {
-      if (u->state & UIP_CLIENT_CLOSED)
-        {
-          if (u->packets_in[0] == NOBLOCK)
-            {
-              u->state = 0;
-            }
-          else
-            return UIPClient(u);
-        }
-      u++;
-    }
-  for (uint8_t sock = 0; sock < UIP_CONNS; sock++)
-    {
-      struct uip_conn* conn = &uip_conns[sock];
-      if (conn->lport == _port && (u = (uip_userdata_t*) conn->appstate.user))
-        {
-          if (UIPClient::_available(u))
-            return UIPClient(conn);
-        }
+      if (data->packets_in[0] != NOBLOCK
+          && (((data->state & UIP_CLIENT_CONNECTED) && uip_conns[data->state & UIP_CLIENT_SOCKETS].lport ==_port)
+              || ((data->state & UIP_CLIENT_CLOSED) && ((uip_userdata_closed_t *)data)->lport == _port)))
+        return UIPClient(data);
     }
   return UIPClient();
 }
@@ -70,11 +54,11 @@ size_t UIPServer::write(uint8_t c)
 size_t UIPServer::write(const uint8_t *buf, size_t size)
 {
   size_t ret = 0;
-  for (int sock = 0; sock < UIP_CONNS; sock++)
+  for ( uip_userdata_t* data = &UIPClient::all_data[0]; data < &UIPClient::all_data[UIP_CONNS]; data++ )
     {
-      struct uip_conn* conn = &uip_conns[sock];
-      if (conn->lport == _port && (conn->tcpstateflags != UIP_CLOSE))
-        ret = UIPClient::_write(conn,buf,size);
+      if ((data->state & UIP_CLIENT_CONNECTED) && uip_conns[data->state & UIP_CLIENT_SOCKETS].lport ==_port)
+        ret += UIPClient::_write(data,buf,size);
     }
   return ret;
 }
+

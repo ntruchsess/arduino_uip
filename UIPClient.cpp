@@ -37,20 +37,12 @@ extern "C"
 uip_userdata_t UIPClient::all_data[UIP_CONNS];
 
 UIPClient::UIPClient() :
-    _uip_conn(NULL),
     data(NULL)
 {
   UIPEthernet.set_uip_callback(&UIPClient::uip_callback);
 }
 
-UIPClient::UIPClient(struct uip_conn* conn) :
-    _uip_conn(conn),
-    data(conn ? (uip_userdata_t*)conn->appstate.user : NULL)
-{
-}
-
 UIPClient::UIPClient(uip_userdata_t* conn_data) :
-    _uip_conn(NULL),
     data(conn_data)
 {
 }
@@ -60,19 +52,21 @@ UIPClient::connect(IPAddress ip, uint16_t port)
 {
   uip_ipaddr_t ipaddr;
   uip_ip_addr(ipaddr, ip);
-  _uip_conn = uip_connect(&ipaddr, htons(port));
-  if (_uip_conn)
+  struct uip_conn* conn = uip_connect(&ipaddr, htons(port));
+  if (conn)
     {
-      while((_uip_conn->tcpstateflags & UIP_TS_MASK) != UIP_CLOSED)
+      while((conn->tcpstateflags & UIP_TS_MASK) != UIP_CLOSED)
         {
           UIPEthernet.tick();
-          if ((_uip_conn->tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED)
+          if ((conn->tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED)
             {
+              data = (uip_userdata_t*) conn->appstate;
 #ifdef UIPETHERNET_DEBUG_CLIENT
+
               Serial.print("connected, state: ");
-              Serial.print(((uip_userdata_t *)_uip_conn->appstate.user)->state);
+              Serial.print(data->state);
               Serial.print(", first packet in: ");
-              Serial.println(((uip_userdata_t *)_uip_conn->appstate.user)->packets_in[0]);
+              Serial.println(data->packets_in[0]);
 #endif
               return 1;
             }
@@ -113,41 +107,38 @@ UIPClient::stop()
         {
           data->state |= UIP_CLIENT_CLOSE;
         }
-      data = NULL;
     }
-  _uip_conn = NULL;
+  data = NULL;
   UIPEthernet.tick();
 }
 
 uint8_t
 UIPClient::connected()
 {
-  return ((_uip_conn && (_uip_conn->tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED) || available() > 0) ? 1 : 0;
+  return (data && (data->packets_in[0] != NOBLOCK  || ((uip_conns[data->state & UIP_CLIENT_SOCKETS].tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED))) ? 1 : 0;
 }
 
 UIPClient::operator bool()
 {
   UIPEthernet.tick();
-  return (data || (_uip_conn && (data = (uip_userdata_t*)_uip_conn->appstate.user)))
-      && (!(data->state & UIP_CLIENT_CLOSED) || data->packets_in[0] != NOBLOCK);
+  return data && (!(data->state & UIP_CLIENT_CLOSED) || data->packets_in[0] != NOBLOCK);
 }
 
 size_t
 UIPClient::write(uint8_t c)
 {
-  return _write(_uip_conn, &c, 1);
+  return _write(data, &c, 1);
 }
 
 size_t
 UIPClient::write(const uint8_t *buf, size_t size)
 {
-  return _write(_uip_conn, buf, size);
+  return _write(data, buf, size);
 }
 
 size_t
-UIPClient::_write(struct uip_conn* conn, const uint8_t *buf, size_t size)
+UIPClient::_write(uip_userdata_t* u, const uint8_t *buf, size_t size)
 {
-  uip_userdata_t *u;
   int remain = size;
   uint16_t written;
 #if UIP_ATTEMPTS_ON_WRITE > 0
@@ -155,7 +146,7 @@ UIPClient::_write(struct uip_conn* conn, const uint8_t *buf, size_t size)
 #endif
   repeat:
   UIPEthernet.tick();
-  if (conn && (u = (uip_userdata_t *)conn->appstate.user) && !(u->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED)))
+  if (u && !(u->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED)))
     {
       memhandle* p = _currentBlock(&u->packets_out[0]);
       if (*p == NOBLOCK)
@@ -252,7 +243,7 @@ UIPClient::read(uint8_t *buf, size_t size)
             {
               remain -= read;
               _eatBlock(p);
-              if (_uip_conn && uip_stopped(_uip_conn) && !(data->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED)))
+              if (uip_stopped(&uip_conns[data->state & UIP_CLIENT_SOCKETS]) && !(data->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED)))
                 data->state |= UIP_CLIENT_RESTART;
               if (*p == NOBLOCK)
                 return size-remain;
@@ -306,22 +297,25 @@ UIPClient::flush()
 void
 UIPClient::uip_callback(uip_tcp_appstate_t *s)
 {
-  uip_userdata_t *u = (uip_userdata_t *) s->user;
+  uip_userdata_t *u = (uip_userdata_t*)uip_conn->appstate;
   if (!u && uip_connected())
     {
 #ifdef UIPETHERNET_DEBUG_CLIENT
       Serial.println("UIPClient uip_connected");
 #endif
-      // We want to store some data in our connections, so allocate some space
-      // for it.  The connection_data struct is defined in a separate .h file,
-      // due to the way the Arduino IDE works.  (typedefs come after function
-      // definitions.)
-
-      u = (uip_userdata_t*) _allocateIndata();
+      u = (uip_userdata_t*) _allocateData();
       if (u)
         {
-          s->user = u;
+          uip_conn->appstate = u;
+#ifdef UIPETHERNET_DEBUG_CLIENT
+          Serial.print("UIPClient allocated state: ");
+          Serial.println(u->state);
+#endif
         }
+#ifdef UIPETHERNET_DEBUG_CLIENT
+      else
+        Serial.println("UIPClient allocation failed");
+#endif
     }
   if (u)
     {
@@ -378,10 +372,12 @@ finish_newdata:
           if (u->packets_in[0] != NOBLOCK)
             {
               ((uip_userdata_closed_t *)u)->lport = uip_conn->lport;
+              u->state |= UIP_CLIENT_CLOSED;
             }
-          u->state |= UIP_CLIENT_CLOSED;
+          else
+            u->state = 0;
           // disassociate appdata.
-          s->user = NULL;
+          uip_conn->appstate = NULL;
           goto nodata;
         }
       if (uip_acked())
@@ -394,7 +390,7 @@ finish_newdata:
       if (uip_poll() || uip_rexmit())
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
-          Serial.println("UIPClient uip_poll");
+          //Serial.println("UIPClient uip_poll");
 #endif
           memhandle p = u->packets_out[0];
           if (p != NOBLOCK)
@@ -435,7 +431,7 @@ finish_newdata:
               Serial.print("UIPClient state UIP_CLIENT_CLOSE -> free userdata");
 #endif
               u->state = 0;
-              s->user = NULL;
+              uip_conn->appstate = NULL;
               uip_close();
             }
           else
@@ -448,13 +444,14 @@ nodata:
 }
 
 uip_userdata_t *
-UIPClient::_allocateIndata()
+UIPClient::_allocateData()
 {
-  for (uip_userdata_t* data = &UIPClient::all_data[0];data < &UIPClient::all_data[UIP_CONNS];data++)
+  for ( uint8_t sock = 0; sock < UIP_CONNS; sock++ )
     {
+      uip_userdata_t* data = &UIPClient::all_data[sock];
       if (!data->state)
         {
-          data->state = UIP_CLIENT_CONNECTED;
+          data->state = sock | UIP_CLIENT_CONNECTED;
           memset(&data->packets_in[0],0,sizeof(uip_userdata_t)-sizeof(data->state));
           return data;
         }

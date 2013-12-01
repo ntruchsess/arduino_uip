@@ -309,12 +309,10 @@ UIPEthernetClass::set_uip_callback(fn_uip_cb_t fn)
 void
 UIPEthernetClass::uip_callback()
 {
-  struct uipethernet_state *s = &(uip_conn->appstate);
-
   if (this->fn_uip_cb)
     {
       // The sketch wants to handle all uIP events itself, using uIP functions.
-      this->fn_uip_cb(s);			//->p, &s->user);
+      this->fn_uip_cb(NULL);			//->p, &s->user);
     }
 }
 

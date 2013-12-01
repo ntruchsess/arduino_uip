@@ -34,10 +34,12 @@ extern "C" {
 #define UIP_SOCKET_NUMPACKETS 5
 #endif
 
-#define UIP_CLIENT_CONNECTED 1
-#define UIP_CLIENT_CLOSE 2
-#define UIP_CLIENT_CLOSED 4
-#define UIP_CLIENT_RESTART 8
+#define UIP_CLIENT_CONNECTED 0x10
+#define UIP_CLIENT_CLOSE 0x20
+#define UIP_CLIENT_CLOSED 0x40
+#define UIP_CLIENT_RESTART 0x80
+#define UIP_CLIENT_STATEFLAGS (UIP_CLIENT_CONNECTED | UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED | UIP_CLIENT_RESTART)
+#define UIP_CLIENT_SOCKETS ~UIP_CLIENT_STATEFLAGS
 
 typedef uint8_t uip_socket_ptr;
 
@@ -76,14 +78,13 @@ private:
   UIPClient(struct uip_conn *_conn);
   UIPClient(uip_userdata_t* conn_data);
 
-  struct uip_conn *_uip_conn;
-
   uip_userdata_t* data;
 
   static uip_userdata_t all_data[UIP_CONNS];
-  static uip_userdata_t* _allocateIndata();
+  static uip_userdata_t* _allocateData();
+  static uip_userdata_t* _getData(struct uip_conn * conn);
   
-  static size_t _write(struct uip_conn*,const uint8_t *buf, size_t size);
+  static size_t _write(uip_userdata_t *,const uint8_t *buf, size_t size);
   static int _available(uip_userdata_t *);
 
   static memhandle * _currentBlock(memhandle* blocks);

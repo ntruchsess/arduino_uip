@@ -166,9 +166,7 @@ typedef unsigned short uip_stats_t;
 // SLIP
 //#define UIP_CONF_LLH_LEN 0
 
-typedef struct uipethernet_state {
-  void *user;
-} uip_tcp_appstate_t;
+typedef void* uip_tcp_appstate_t;
 
 void uipethernet_appcall(void);
 
