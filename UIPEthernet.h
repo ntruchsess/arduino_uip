@@ -49,7 +49,7 @@ extern "C"
                      ((u16_t *)(addr))[1] = HTONS(((ip[2]) << 8) | (ip[3])); \
                   } while(0)
 
-#define ip_addr_uip(a) IPAddress(a[0] & 0xFF, a[0] >> 8 , a[1] & 0xFF, a[1] >> 8); //TODO this is not IPV6 capable
+#define ip_addr_uip(a) IPAddress(a[0] & 0xFF, a[0] >> 8 , a[1] & 0xFF, a[1] >> 8) //TODO this is not IPV6 capable
 
 #define uip_seteth_addr(eaddr) do {uip_ethaddr.addr[0] = eaddr[0]; \
                               uip_ethaddr.addr[1] = eaddr[1];\
@@ -57,12 +57,6 @@ extern "C"
                               uip_ethaddr.addr[3] = eaddr[3];\
                               uip_ethaddr.addr[4] = eaddr[4];\
                               uip_ethaddr.addr[5] = eaddr[5];} while(0)
-
-typedef void
-(*fn_uip_cb_t)(uip_tcp_appstate_t *conn);
-
-typedef void
-(*fn_uip_udp_cb_t)(uip_udp_appstate_t *conn);
 
 #define BUF ((struct uip_tcpip_hdr *)&uip_buf[UIP_LLH_LEN])
 

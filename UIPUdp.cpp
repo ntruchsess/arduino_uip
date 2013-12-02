@@ -333,16 +333,15 @@ UIPUDP::flush()
 IPAddress
 UIPUDP::remoteIP()
 {
-  return appdata.ripaddr;
+  return _uip_udp_conn ? ip_addr_uip(_uip_udp_conn->ripaddr) : IPAddress();
 }
 
 // Return the port of the host who sent the current incoming packet
 uint16_t
 UIPUDP::remotePort()
 {
-  return appdata.rport;
+  return _uip_udp_conn ? ntohs(_uip_udp_conn->rport) : 0;
 }
-
 
 // uIP callback function
 
@@ -357,8 +356,8 @@ UIPUDP::uip_callback() {
     {
       if (uip_newdata())
         {
-          data->rport = ntohs(UDPBUF->srcport);
-          data->ripaddr = ip_addr_uip(UDPBUF->srcipaddr);
+          uip_udp_conn->rport = UDPBUF->srcport;
+          uip_ipaddr_copy(uip_udp_conn->ripaddr,UDPBUF->srcipaddr);
           memhandle *packet = &data->packets_in[0];
           uint8_t i = 0;
           do

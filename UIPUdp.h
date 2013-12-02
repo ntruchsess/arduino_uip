@@ -43,8 +43,6 @@ private:
 
   struct appdata_t
   {
-    uint16_t rport;
-    IPAddress ripaddr;
     memaddress out_pos;
     memhandle packets_in[UIP_UDP_NUMPACKETS];
     memhandle packet_in;
