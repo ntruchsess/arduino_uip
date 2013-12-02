@@ -87,18 +87,11 @@ public:
   IPAddress gatewayIP();
   IPAddress dnsServerIP();
 
-  // Set a user function to handle raw uIP events as they happen.  The
-  // callback function can only use uIP functions, but it can also use uIP's
-  // protosockets.
-  void set_uip_udp_callback(fn_uip_udp_cb_t fn);
-
 private:
   IPAddress _dnsServerAddress;
   DhcpClass* _dhcp;
 
   struct uip_timer periodic_timer;
-  fn_uip_cb_t fn_uip_cb;
-  fn_uip_udp_cb_t fn_uip_udp_cb;
 
   memhandle in_packet;
   memhandle uip_packet;
@@ -113,10 +106,6 @@ private:
   void tick();
 
   boolean network_send();
-
-  void uip_udp_callback();
-
-  friend void uipudp_appcall(void);
 
   friend class UIPServer;
 

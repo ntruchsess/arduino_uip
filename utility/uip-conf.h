@@ -172,9 +172,7 @@ void uipclient_appcall(void);
 
 #define UIP_APPCALL uipclient_appcall
 
-typedef struct uipudp_state {
-  void *user;
-} uip_udp_appstate_t;
+typedef void* uip_udp_appstate_t;
 
 void uipudp_appcall(void);
 

@@ -293,7 +293,8 @@ UIPClient::flush()
     }
 }
 
-void uipclient_appcall(void)
+void
+uipclient_appcall(void)
 {
   UIPClient::uip_callback();
 }
