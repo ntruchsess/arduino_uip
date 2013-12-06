@@ -64,6 +64,7 @@ public:
   uint8_t connected();
   operator bool();
   virtual bool operator==(const EthernetClient&);
+  virtual bool operator!=(const EthernetClient& rhs) { return !this->operator==(rhs); };
   virtual uint16_t localPort();
   virtual IPAddress remoteIP();
   virtual uint16_t remotePort();
