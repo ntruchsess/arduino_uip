@@ -26,7 +26,7 @@ extern "C"
 }
 #include "UIPEthernet.h"
 #include "UIPClient.h"
-#include "utility/Dns.h"
+#include "Dns.h"
 
 #ifdef UIPETHERNET_DEBUG_CLIENT
 #include "HardwareSerial.h"
