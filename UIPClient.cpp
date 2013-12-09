@@ -118,8 +118,9 @@ UIPClient::connected()
 }
 
 bool
-UIPClient::operator==(const UIPClient& rhs) {
-  return _uip_conn && rhs._uip_conn && _uip_conn == rhs._uip_conn;
+UIPClient::operator==(const UIPClient& rhs)
+{
+  return data && rhs.data && (data == rhs.data);
 }
 
 UIPClient::operator bool()
