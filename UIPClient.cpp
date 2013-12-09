@@ -114,7 +114,7 @@ UIPClient::stop()
 uint8_t
 UIPClient::connected()
 {
-  return (data && (data->packets_in[0] != NOBLOCK  || ((uip_conns[data->state & UIP_CLIENT_SOCKETS].tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED))) ? 1 : 0;
+  return (data && (data->packets_in[0] != NOBLOCK || (data->state & UIP_CLIENT_CONNECTED))) ? 1 : 0;
 }
 
 bool
