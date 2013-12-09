@@ -135,6 +135,30 @@ UIPClient::connected()
   return ((_uip_conn && (_uip_conn->tcpstateflags & UIP_TS_MASK) == UIP_ESTABLISHED) || available() > 0) ? 1 : 0;
 }
 
+bool
+UIPClient::operator==(const UIPClient& rhs) {
+  return _uip_conn && rhs._uip_conn && _uip_conn == rhs._uip_conn;
+}
+
+uint16_t
+UIPClient::localPort() {
+  if (!_uip_conn) return 0;
+  return htons(_uip_conn->lport);
+}
+
+IPAddress
+UIPClient::remoteIP() {
+  if (!_uip_conn) return IPAddress();
+  return ip_addr_uip(_uip_conn->ripaddr);
+}
+
+uint16_t
+UIPClient::remotePort() {
+  if (!_uip_conn) return 0;
+  return htons(_uip_conn->rport);
+}
+
+
 UIPClient::operator bool()
 {
   UIPEthernet.tick();

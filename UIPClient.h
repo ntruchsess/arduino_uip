@@ -63,6 +63,11 @@ public:
   void stop();
   uint8_t connected();
   operator bool();
+  virtual bool operator==(const EthernetClient&);
+  virtual bool operator!=(const EthernetClient& rhs) { return !this->operator==(rhs); };
+  virtual uint16_t localPort();
+  virtual IPAddress remoteIP();
+  virtual uint16_t remotePort();
 
   size_t write(uint8_t);
   size_t write(const uint8_t *buf, size_t size);
