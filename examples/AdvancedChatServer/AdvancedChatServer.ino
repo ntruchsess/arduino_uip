@@ -77,12 +77,6 @@ void loop() {
           client.println("Hello, client!");
           client.print("my IP: ");
           client.println(Ethernet.localIP());
-          client.print("my port: ");
-          client.println(client.localPort());
-          client.print("your IP: ");
-          client.println(client.remoteIP());
-          client.print("your port: ");
-          client.println(client.remotePort());
           break;
         }
       }
