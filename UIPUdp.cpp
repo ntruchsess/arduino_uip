@@ -19,7 +19,7 @@
 
 #include "UIPEthernet.h"
 #include "UIPUdp.h"
-#include "utility/Dns.h"
+#include "Dns.h"
 
 #ifdef UIPETHERNET_DEBUG_UDP
 #include "HardwareSerial.h"

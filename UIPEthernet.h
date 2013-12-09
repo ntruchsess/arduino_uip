@@ -22,7 +22,7 @@
 
 #include "ethernet_comp.h"
 #include <Arduino.h>
-#include "utility/Dhcp.h"
+#include "Dhcp.h"
 #include "IPAddress.h"
 #include "utility/Enc28J60Network.h"
 #include "UIPClient.h"
