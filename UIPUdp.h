@@ -43,8 +43,6 @@ private:
 
   struct appdata_t
   {
-    uint16_t rport;
-    IPAddress ripaddr;
     memaddress out_pos;
     memhandle packets_in[UIP_UDP_NUMPACKETS];
     memhandle packet_in;
@@ -119,7 +117,10 @@ public:
   remotePort();
 
 private:
-  static void uip_callback(uip_udp_appstate_t *s);
+
+  friend void uipudp_appcall(void);
+
+  static void uip_callback();
 };
 
 #endif

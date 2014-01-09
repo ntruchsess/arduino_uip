@@ -36,11 +36,10 @@ extern "C" {
 #define UDPBUF ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 // Constructor
-UIPUDP::UIPUDP()
+UIPUDP::UIPUDP() :
+    _uip_udp_conn(NULL)
 {
-  _uip_udp_conn = NULL;
   memset(&appdata,0,sizeof(appdata));
-  UIPEthernet.set_uip_udp_callback(&UIPUDP::uip_callback);
 }
 
 // initialize, start listening on specified port. Returns 1 if successful, 0 if there are no sockets available to use
@@ -54,7 +53,7 @@ UIPUDP::begin(uint16_t port)
   if (_uip_udp_conn)
     {
       uip_udp_bind(_uip_udp_conn,htons(port));
-      _uip_udp_conn->appstate.user = &appdata;
+      _uip_udp_conn->appstate = &appdata;
       return 1;
     }
   return 0;
@@ -68,7 +67,7 @@ UIPUDP::stop()
     {
       flush();
       uip_udp_remove(_uip_udp_conn);
-      _uip_udp_conn->appstate.user = NULL;
+      _uip_udp_conn->appstate = NULL;
       _uip_udp_conn=NULL;
       if (appdata.packet_in != NOBLOCK)
         {
@@ -119,7 +118,7 @@ UIPUDP::beginPacket(IPAddress ip, uint16_t port)
 #ifdef UIPETHERNET_DEBUG_UDP
               Serial.print("new connection, ");
 #endif
-              _uip_udp_conn->appstate.user = &appdata;
+              _uip_udp_conn->appstate = &appdata;
             }
           else
             {
@@ -334,23 +333,31 @@ UIPUDP::flush()
 IPAddress
 UIPUDP::remoteIP()
 {
-  return appdata.ripaddr;
+  return _uip_udp_conn ? ip_addr_uip(_uip_udp_conn->ripaddr) : IPAddress();
 }
 
 // Return the port of the host who sent the current incoming packet
 uint16_t
 UIPUDP::remotePort()
 {
-  return appdata.rport;
+  return _uip_udp_conn ? ntohs(_uip_udp_conn->rport) : 0;
 }
 
-void UIPUDP::uip_callback(uip_udp_appstate_t *s) {
-  if (appdata_t *data = (appdata_t *)s->user)
+// uIP callback function
+
+void
+uipudp_appcall(void) {
+  UIPUDP::uip_callback();
+}
+
+void
+UIPUDP::uip_callback() {
+  if (appdata_t *data = (appdata_t *)(uip_udp_conn->appstate))
     {
       if (uip_newdata())
         {
-          data->rport = ntohs(UDPBUF->srcport);
-          data->ripaddr = ip_addr_uip(UDPBUF->srcipaddr);
+          uip_udp_conn->rport = UDPBUF->srcport;
+          uip_ipaddr_copy(uip_udp_conn->ripaddr,UDPBUF->srcipaddr);
           memhandle *packet = &data->packets_in[0];
           uint8_t i = 0;
           do

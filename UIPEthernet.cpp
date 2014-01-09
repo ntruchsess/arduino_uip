@@ -39,8 +39,6 @@ extern "C"
 // variables, so we can only have one TCP/IP stack per program.
 
 UIPEthernetClass::UIPEthernetClass() :
-    fn_uip_cb(NULL),
-    fn_uip_udp_cb(NULL),
     in_packet(NOBLOCK),
     uip_packet(NOBLOCK),
     uip_hdrlen(0),
@@ -300,59 +298,7 @@ void UIPEthernetClass::configure(IPAddress ip, IPAddress dns, IPAddress gateway,
   _dnsServerAddress = dns;
 }
 
-void
-UIPEthernetClass::set_uip_callback(fn_uip_cb_t fn)
-{
-  this->fn_uip_cb = fn;
-}
-
-void
-UIPEthernetClass::uip_callback()
-{
-  struct uipethernet_state *s = &(uip_conn->appstate);
-
-  if (this->fn_uip_cb)
-    {
-      // The sketch wants to handle all uIP events itself, using uIP functions.
-      this->fn_uip_cb(s);			//->p, &s->user);
-    }
-}
-
-void
-UIPEthernetClass::set_uip_udp_callback(fn_uip_udp_cb_t fn)
-{
-  this->fn_uip_udp_cb = fn;
-}
-
-#if UIP_UDP
-void
-UIPEthernetClass::uip_udp_callback()
-{
-  struct uipudp_state *s = &(uip_udp_conn->appstate);
-
-  if (this->fn_uip_udp_cb)
-    {
-      // The sketch wants to handle all uIP events itself, using uIP functions.
-      this->fn_uip_udp_cb(s);                       //->p, &s->user);
-    }
-}
-#endif
-
 UIPEthernetClass UIPEthernet;
-
-// uIP callback function
-void
-uipethernet_appcall(void)
-{
-  UIPEthernet.uip_callback();
-}
-
-#if UIP_UDP
-void
-uipudp_appcall(void) {
-  UIPEthernet.uip_udp_callback();
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 uint16_t

@@ -49,7 +49,7 @@ extern "C"
                      ((u16_t *)(addr))[1] = HTONS(((ip[2]) << 8) | (ip[3])); \
                   } while(0)
 
-#define ip_addr_uip(a) IPAddress(a[0] & 0xFF, a[0] >> 8 , a[1] & 0xFF, a[1] >> 8); //TODO this is not IPV6 capable
+#define ip_addr_uip(a) IPAddress(a[0] & 0xFF, a[0] >> 8 , a[1] & 0xFF, a[1] >> 8) //TODO this is not IPV6 capable
 
 #define uip_seteth_addr(eaddr) do {uip_ethaddr.addr[0] = eaddr[0]; \
                               uip_ethaddr.addr[1] = eaddr[1];\
@@ -57,12 +57,6 @@ extern "C"
                               uip_ethaddr.addr[3] = eaddr[3];\
                               uip_ethaddr.addr[4] = eaddr[4];\
                               uip_ethaddr.addr[5] = eaddr[5];} while(0)
-
-typedef void
-(*fn_uip_cb_t)(uip_tcp_appstate_t *conn);
-
-typedef void
-(*fn_uip_udp_cb_t)(uip_udp_appstate_t *conn);
 
 #define BUF ((struct uip_tcpip_hdr *)&uip_buf[UIP_LLH_LEN])
 
@@ -87,19 +81,11 @@ public:
   IPAddress gatewayIP();
   IPAddress dnsServerIP();
 
-  // Set a user function to handle raw uIP events as they happen.  The
-  // callback function can only use uIP functions, but it can also use uIP's
-  // protosockets.
-  void set_uip_callback(fn_uip_cb_t fn);
-  void set_uip_udp_callback(fn_uip_udp_cb_t fn);
-
 private:
   IPAddress _dnsServerAddress;
   DhcpClass* _dhcp;
 
   struct uip_timer periodic_timer;
-  fn_uip_cb_t fn_uip_cb;
-  fn_uip_udp_cb_t fn_uip_udp_cb;
 
   memhandle in_packet;
   memhandle uip_packet;
@@ -114,14 +100,6 @@ private:
   void tick();
 
   boolean network_send();
-
-  void uip_callback();
-
-  friend void uipethernet_appcall(void);
-
-  void uip_udp_callback();
-
-  friend void uipudp_appcall(void);
 
   friend class UIPServer;
 
