@@ -27,7 +27,7 @@
 
 #include "mempool.h"
 
-#define ENC28J60_CONTROL_CS     8
+#define ENC28J60_CONTROL_CS     SS
 #define SPI_MOSI        MOSI
 #define SPI_MISO        MISO
 #define SPI_SCK         SCK
