@@ -35,9 +35,6 @@ extern "C" {
 #include "HardwareSerial.h"
 #endif
 
-#define DMARUNNING 1
-#define DMANEWPACKET 2
-
 // set CS to 0 = active
 #define CSACTIVE digitalWrite(ENC28J60_CONTROL_CS, LOW)
 // set CS to 1 = passive
@@ -59,14 +56,11 @@ void Enc28J60Network::init(uint8_t* macaddr)
   CSPASSIVE; // ss=0
   //
   pinMode(SPI_MOSI, OUTPUT);
-
   pinMode(SPI_SCK, OUTPUT);
-
   pinMode(SPI_MISO, INPUT);
-
+  pinMode(SPI_SS, OUTPUT);
 
   digitalWrite(SPI_MOSI, LOW);
-
   digitalWrite(SPI_SCK, LOW);
 
   /*DDRB  |= 1<<PB3 | 1<<PB5; // mosi, sck output
