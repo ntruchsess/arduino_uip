@@ -212,7 +212,7 @@ UIPClient::available()
 {
   if (*this)
     return _available(data);
-  return -1;
+  return 0;
 }
 
 int
