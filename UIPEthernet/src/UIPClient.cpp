@@ -212,7 +212,7 @@ UIPClient::available()
 {
   if (*this)
     return _available(data);
-  return -1;
+  return 0;
 }
 
 int
@@ -251,7 +251,14 @@ UIPClient::read(uint8_t *buf, size_t size)
               if (uip_stopped(&uip_conns[data->state & UIP_CLIENT_SOCKETS]) && !(data->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED)))
                 data->state |= UIP_CLIENT_RESTART;
               if (*p == NOBLOCK)
-                return size-remain;
+                {
+                  if (data->state & UIP_CLIENT_CLOSED)
+                    {
+                      data->state = 0;
+                      data = NULL;
+                    }
+                  return size-remain;
+                }
             }
           else
             {
