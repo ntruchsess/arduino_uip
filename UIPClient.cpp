@@ -78,18 +78,16 @@ int
 UIPClient::connect(const char *host, uint16_t port)
 {
   // Look up the host first
-  int ret = 0;
 #if UIP_UDP
   DNSClient dns;
   IPAddress remote_addr;
 
   dns.begin(UIPEthernet.dnsServerIP());
-  ret = dns.getHostByName(host, remote_addr);
-  if (ret == 1) {
+  if (dns.getHostByName(host, remote_addr) == 1) {
     return connect(remote_addr, port);
   }
 #endif
-  return ret;
+  return 0;
 }
 
 void
