@@ -410,6 +410,12 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
   return (sum == 0) ? 0xffff : htons(sum);
 }
 
+Enc28J60Network 
+UIPEthernetClass::getNetwork()
+{
+  return network;
+}
+
 uint16_t
 uip_ipchksum(void)
 {

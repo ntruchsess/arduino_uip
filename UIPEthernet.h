@@ -81,6 +81,8 @@ public:
   IPAddress gatewayIP();
   IPAddress dnsServerIP();
 
+  Enc28J60Network getNetwork();
+
 private:
   IPAddress _dnsServerAddress;
   DhcpClass* _dhcp;
