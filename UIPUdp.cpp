@@ -103,7 +103,7 @@ UIPUDP::beginPacket(IPAddress ip, uint16_t port)
       uip_ipaddr_t ripaddr;
       uip_ip_addr(&ripaddr, ip);
 #ifdef UIPETHERNET_DEBUG_UDP
-      Serial.print("udp beginPacket, ");
+      Serial.print(F("udp beginPacket, "));
 #endif
       if (_uip_udp_conn)
         {
@@ -116,22 +116,22 @@ UIPUDP::beginPacket(IPAddress ip, uint16_t port)
           if (_uip_udp_conn)
             {
 #ifdef UIPETHERNET_DEBUG_UDP
-              Serial.print("new connection, ");
+              Serial.print(F("new connection, "));
 #endif
               _uip_udp_conn->appstate = &appdata;
             }
           else
             {
 #ifdef UIPETHERNET_DEBUG_UDP
-              Serial.println("failed to allocate new connection");
+              Serial.println(F("failed to allocate new connection"));
 #endif
               return 0;
             }
         }
 #ifdef UIPETHERNET_DEBUG_UDP
-          Serial.print("rip: ");
+          Serial.print(F("rip: "));
           Serial.print(ip);
-          Serial.print(", port: ");
+          Serial.print(F(", port: "));
           Serial.println(port);
 #endif
     }
@@ -145,12 +145,12 @@ UIPUDP::beginPacket(IPAddress ip, uint16_t port)
             return 1;
 #ifdef UIPETHERNET_DEBUG_UDP
           else
-            Serial.println("failed to allocate memory for packet");
+            Serial.println(F("failed to allocate memory for packet"));
 #endif
         }
 #ifdef UIPETHERNET_DEBUG_UDP
       else
-        Serial.println("previous packet on that connection not sent yet");
+        Serial.println(F("previous packet on that connection not sent yet"));
 #endif
     }
   return 0;
@@ -223,7 +223,7 @@ UIPUDP::parsePacket()
   if (appdata.packet_in != NOBLOCK)
     {
 #ifdef UIPETHERNET_DEBUG_UDP
-      Serial.print("udp parsePacket freeing previous packet: ");
+      Serial.print(F("udp parsePacket freeing previous packet: "));
       Serial.println(appdata.packet_in);
 #endif;
       UIPEthernet.network.freeBlock(appdata.packet_in);
@@ -233,7 +233,7 @@ UIPUDP::parsePacket()
   if (appdata.packet_in != NOBLOCK)
     {
 #ifdef UIPETHERNET_DEBUG_UDP
-      Serial.print("udp parsePacket received packet: ");
+      Serial.print(F("udp parsePacket received packet: "));
       Serial.print(appdata.packet_in);
 #endif
       if (UIP_UDP_NUMPACKETS > 1)
@@ -256,7 +256,7 @@ freeloop:
 freeready:
       int size = UIPEthernet.network.blockSize(appdata.packet_in);
 #ifdef UIPETHERNET_DEBUG_UDP
-      Serial.print(", size: ");
+      Serial.print(F(", size: "));
       Serial.println(size);
 #endif
       return size;
@@ -371,11 +371,11 @@ UIPUDP::uip_callback() {
                       //discard Linklevel and IP and udp-header and any trailing bytes:
                       UIPEthernet.network.copyPacket(*packet,0,UIPEthernet.in_packet,UIP_UDP_PHYH_LEN,UIPEthernet.network.blockSize(*packet));
     #ifdef UIPETHERNET_DEBUG_UDP
-                      Serial.print("udp, uip_newdata received packet: ");
+                      Serial.print(F("udp, uip_newdata received packet: "));
                       Serial.print(*packet);
-                      Serial.print(", slot: ");
+                      Serial.print(F(", slot: "));
                       Serial.print(i);
-                      Serial.print(", size: ");
+                      Serial.print(F(", size: "));
                       Serial.println(UIPEthernet.network.blockSize(*packet));
     #endif
                       break;
@@ -390,9 +390,9 @@ UIPUDP::uip_callback() {
         {
           //set uip_slen (uip private) by calling uip_udp_send
 #ifdef UIPETHERNET_DEBUG_UDP
-          Serial.print("udp, uip_poll preparing packet to send: ");
+          Serial.print(F("udp, uip_poll preparing packet to send: "));
           Serial.print(data->packet_out);
-          Serial.print(", size: ");
+          Serial.print(F(", size: "));
           Serial.println(UIPEthernet.network.blockSize(data->packet_out));
 #endif
           UIPEthernet.uip_packet = data->packet_out;
@@ -406,7 +406,7 @@ UIPUDP::uip_callback() {
             {
               UIPEthernet.packetstate &= ~UIPETHERNET_SENDPACKET;
 #ifdef UIPETHERNET_DEBUG_UDP
-              Serial.println("udp, uip_poll results in ARP-packet");
+              Serial.println(F("udp, uip_poll results in ARP-packet"));
 #endif
             }
           else
@@ -414,7 +414,7 @@ UIPUDP::uip_callback() {
             {
               data->send = false;
 #ifdef UIPETHERNET_DEBUG_UDP
-              Serial.print("udp, uip_packet to send: ");
+              Serial.print(F("udp, uip_packet to send: "));
               Serial.println(UIPEthernet.uip_packet);
 #endif
             }
