@@ -33,6 +33,12 @@ extern "C"
 #include "utility/uip_timer.h"
 }
 
+// Workaround for http://gcc.gnu.org/bugzilla/show_bug.cgi?id=34734
+#ifdef PROGMEM
+#undef PROGMEM
+#define PROGMEM __attribute__((section(".progmem.data")))
+#endif
+
 #define ETH_HDR ((struct uip_eth_hdr *)&uip_buf[0])
 
 // Because uIP isn't encapsulated within a class we have to use global
