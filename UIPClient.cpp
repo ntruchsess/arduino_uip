@@ -32,6 +32,12 @@ extern "C"
 #include "HardwareSerial.h"
 #endif
 
+// Workaround for http://gcc.gnu.org/bugzilla/show_bug.cgi?id=34734
+#ifdef PROGMEM
+#undef PROGMEM
+#define PROGMEM __attribute__((section(".progmem.data")))
+#endif
+
 #define UIP_TCP_PHYH_LEN UIP_LLH_LEN+UIP_IPTCPH_LEN
 
 uip_userdata_t UIPClient::all_data[UIP_CONNS];
