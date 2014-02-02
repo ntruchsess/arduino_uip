@@ -158,7 +158,7 @@ UIPEthernetClass::tick()
 #ifdef UIPETHERNET_DEBUG
       if (in_packet != NOBLOCK)
         {
-          Serial.print("--------------\nreceivePacket: ");
+          Serial.print(F("--------------\nreceivePacket: "));
           Serial.println(in_packet);
         }
 #endif
@@ -174,7 +174,7 @@ UIPEthernetClass::tick()
             {
               uip_packet = in_packet;
 #ifdef UIPETHERNET_DEBUG
-              Serial.print("readPacket type IP, uip_len: ");
+              Serial.print(F("readPacket type IP, uip_len: "));
               Serial.println(uip_len);
 #endif
               uip_arp_ipin();
@@ -188,7 +188,7 @@ UIPEthernetClass::tick()
           else if (ETH_HDR ->type == HTONS(UIP_ETHTYPE_ARP))
             {
 #ifdef UIPETHERNET_DEBUG
-              Serial.print("readPacket type ARP, uip_len: ");
+              Serial.print(F("readPacket type ARP, uip_len: "));
               Serial.println(uip_len);
 #endif
               uip_arp_arpin();
@@ -201,7 +201,7 @@ UIPEthernetClass::tick()
       if (in_packet != NOBLOCK && (packetstate & UIPETHERNET_FREEPACKET))
         {
 #ifdef UIPETHERNET_DEBUG
-          Serial.print("freeing packet: ");
+          Serial.print(F("freeing packet: "));
           Serial.println(in_packet);
 #endif
           network.freePacket();
@@ -246,9 +246,9 @@ boolean UIPEthernetClass::network_send()
   if (packetstate & UIPETHERNET_SENDPACKET)
     {
 #ifdef UIPETHERNET_DEBUG
-      Serial.print("network_send uip_packet: ");
+      Serial.print(F("network_send uip_packet: "));
       Serial.print(uip_packet);
-      Serial.print(", hdrlen: ");
+      Serial.print(F(", hdrlen: "));
       Serial.println(uip_hdrlen);
 #endif
       network.writePacket(uip_packet,0,uip_buf,uip_hdrlen);
@@ -258,9 +258,9 @@ boolean UIPEthernetClass::network_send()
   if (uip_packet != NOBLOCK)
     {
 #ifdef UIPETHERNET_DEBUG
-      Serial.print("network_send uip_buf (uip_len): ");
+      Serial.print(F("network_send uip_buf (uip_len): "));
       Serial.print(uip_len);
-      Serial.print(", packet: ");
+      Serial.print(F(", packet: "));
       Serial.println(uip_packet);
 #endif
       network.writePacket(uip_packet,0,uip_buf,uip_len);
@@ -381,11 +381,11 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
   }
   sum = chksum(sum, &uip_buf[UIP_IPH_LEN + UIP_LLH_LEN], upper_layer_memlen);
 #ifdef UIPETHERNET_DEBUG_CHKSUM
-  Serial.print("chksum uip_buf[");
+  Serial.print(F("chksum uip_buf["));
   Serial.print(UIP_IPH_LEN + UIP_LLH_LEN);
-  Serial.print("-");
+  Serial.print(F("-"));
   Serial.print(UIP_IPH_LEN + UIP_LLH_LEN + upper_layer_memlen);
-  Serial.print("]: ");
+  Serial.print(F("]: "));
   Serial.println(htons(sum),HEX);
 #endif
   if (upper_layer_memlen < upper_layer_len)
@@ -397,13 +397,13 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
           upper_layer_len - upper_layer_memlen
       );
 #ifdef UIPETHERNET_DEBUG_CHKSUM
-      Serial.print("chksum uip_packet(");
+      Serial.print(F("chksum uip_packet("));
       Serial.print(uip_packet);
-      Serial.print(")[");
+      Serial.print(F(")["));
       Serial.print(UIP_IPH_LEN + UIP_LLH_LEN + upper_layer_memlen);
-      Serial.print("-");
+      Serial.print(F("-"));
       Serial.print(UIP_IPH_LEN + UIP_LLH_LEN + upper_layer_len);
-      Serial.print("]: ");
+      Serial.print(F"]: "));
       Serial.println(htons(sum),HEX);
 #endif
     }

@@ -62,9 +62,9 @@ UIPClient::connect(IPAddress ip, uint16_t port)
               data = (uip_userdata_t*) conn->appstate;
 #ifdef UIPETHERNET_DEBUG_CLIENT
 
-              Serial.print("connected, state: ");
+              Serial.print(F("connected, state: "));
               Serial.print(data->state);
-              Serial.print(", first packet in: ");
+              Serial.print(F(", first packet in: "));
               Serial.println(data->packets_in[0]);
 #endif
               return 1;
@@ -171,17 +171,17 @@ newpacket:
           u->out_pos = 0;
         }
 #ifdef UIPETHERNET_DEBUG_CLIENT
-      Serial.print("UIPClient.write: writePacket(");
+      Serial.print(F("UIPClient.write: writePacket("));
       Serial.print(*p);
-      Serial.print(") pos: ");
+      Serial.print(F(") pos: "));
       Serial.print(u->out_pos);
-      Serial.print(", buf[");
+      Serial.print(F(", buf["));
       Serial.print(size-remain);
-      Serial.print("-");
+      Serial.print(F("-"));
       Serial.print(remain);
-      Serial.print("]: '");
+      Serial.print(F("]: '"));
       Serial.write((uint8_t*)buf+size-remain,remain);
-      Serial.println("'");
+      Serial.println(F("'"));
 #endif
       written = UIPEthernet.network.writePacket(*p,u->out_pos,(uint8_t*)buf+size-remain,remain);
       remain -= written;
@@ -319,20 +319,20 @@ UIPClient::uip_callback()
   if (!u && uip_connected())
     {
 #ifdef UIPETHERNET_DEBUG_CLIENT
-      Serial.println("UIPClient uip_connected");
+      Serial.println(F("UIPClient uip_connected"));
 #endif
       u = (uip_userdata_t*) _allocateData();
       if (u)
         {
           uip_conn->appstate = u;
 #ifdef UIPETHERNET_DEBUG_CLIENT
-          Serial.print("UIPClient allocated state: ");
+          Serial.print(F("UIPClient allocated state: "));
           Serial.println(u->state);
 #endif
         }
 #ifdef UIPETHERNET_DEBUG_CLIENT
       else
-        Serial.println("UIPClient allocation failed");
+        Serial.println(F("UIPClient allocation failed"));
 #endif
     }
   if (u)
@@ -340,7 +340,7 @@ UIPClient::uip_callback()
       if (uip_newdata())
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
-          Serial.print("UIPClient uip_newdata, uip_len:");
+          Serial.print(F("UIPClient uip_newdata, uip_len:"));
           Serial.println(uip_len);
 #endif
           if (uip_len && !(u->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED)))
@@ -383,7 +383,7 @@ finish_newdata:
       if (uip_closed() || uip_timedout())
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
-          Serial.println("UIPClient uip_closed");
+          Serial.println(F("UIPClient uip_closed"));
 #endif
           // drop outgoing packets not sent yet:
           _flushBlocks(&u->packets_out[0]);
@@ -401,14 +401,14 @@ finish_newdata:
       if (uip_acked())
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
-          Serial.println("UIPClient uip_acked");
+          Serial.println(F("UIPClient uip_acked"));
 #endif
           _eatBlock(&u->packets_out[0]);
         }
       if (uip_poll() || uip_rexmit())
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
-          //Serial.println("UIPClient uip_poll");
+          //Serial.println(F("UIPClient uip_poll"));
 #endif
           memhandle p = u->packets_out[0];
           if (p != NOBLOCK)
@@ -441,12 +441,12 @@ finish_newdata:
       if (u->state & UIP_CLIENT_CLOSE)
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
-              Serial.print("UIPClient state UIP_CLIENT_CLOSE");
+              Serial.print(F("UIPClient state UIP_CLIENT_CLOSE"));
 #endif
           if (u->packets_out[0] == NOBLOCK)
             {
 #ifdef UIPETHERNET_DEBUG_CLIENT
-              Serial.print("UIPClient state UIP_CLIENT_CLOSE -> free userdata");
+              Serial.print(F("UIPClient state UIP_CLIENT_CLOSE -> free userdata"));
 #endif
               u->state = 0;
               uip_conn->appstate = NULL;
@@ -491,7 +491,7 @@ UIPClient::_eatBlock(memhandle* block)
 {
 #ifdef UIPETHERNET_DEBUG_CLIENT
   memhandle* start = block;
-  Serial.print("eatblock(");
+  Serial.print(F("eatblock("));
   Serial.print(*block);
   Serial.print("): ");
   for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
@@ -510,7 +510,7 @@ UIPClient::_eatBlock(memhandle* block)
   for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
     {
       Serial.print(start[i]);
-      Serial.print(" ");
+      Serial.print(F(" "));
     }
   Serial.println();
 #endif
