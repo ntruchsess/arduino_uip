@@ -49,6 +49,7 @@ UIPClient::UIPClient(uip_userdata_t* conn_data) :
 int
 UIPClient::connect(IPAddress ip, uint16_t port)
 {
+  stop();
   uip_ipaddr_t ipaddr;
   uip_ip_addr(ipaddr, ip);
   struct uip_conn* conn = uip_connect(&ipaddr, htons(port));

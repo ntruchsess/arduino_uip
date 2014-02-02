@@ -84,8 +84,7 @@ private:
 
   static uip_userdata_t all_data[UIP_CONNS];
   static uip_userdata_t* _allocateData();
-  static uip_userdata_t* _getData(struct uip_conn * conn);
-  
+
   static size_t _write(uip_userdata_t *,const uint8_t *buf, size_t size);
   static int _available(uip_userdata_t *);
 
