@@ -33,7 +33,7 @@ UIPClient UIPServer::available()
     {
       if (data->packets_in[0] != NOBLOCK
           && (((data->state & UIP_CLIENT_CONNECTED) && uip_conns[data->state & UIP_CLIENT_SOCKETS].lport ==_port)
-              || ((data->state & UIP_CLIENT_CLOSED) && ((uip_userdata_closed_t *)data)->lport == _port)))
+              || ((data->state & UIP_CLIENT_REMOTECLOSED) && ((uip_userdata_closed_t *)data)->lport == _port)))
         return UIPClient(data);
     }
   return UIPClient();
