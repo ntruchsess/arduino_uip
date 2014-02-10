@@ -20,6 +20,11 @@
 #ifndef UIPETHERNET_H
 #define UIPETHERNET_H
 
+//#define UIPETHERNET_DEBUG
+//#define UIPETHERNET_DEBUG_CHKSUM
+//#define UIPETHERNET_DEBUG_UDP
+//#define UIPETHERNET_DEBUG_CLIENT
+
 #include "ethernet_comp.h"
 #include <Arduino.h>
 #include "Dhcp.h"
@@ -34,11 +39,6 @@ extern "C"
 #include "utility/uip_timer.h"
 #include "utility/uip.h"
 }
-
-//#define UIPETHERNET_DEBUG
-//#define UIPETHERNET_DEBUG_CHKSUM
-//#define UIPETHERNET_DEBUG_UDP
-//#define UIPETHERNET_DEBUG_CLIENT
 
 #define UIPETHERNET_FREEPACKET 1
 #define UIPETHERNET_SENDPACKET 2

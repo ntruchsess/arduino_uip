@@ -36,9 +36,9 @@ extern "C" {
 
 #define UIP_CLIENT_CONNECTED 0x10
 #define UIP_CLIENT_CLOSE 0x20
-#define UIP_CLIENT_CLOSED 0x40
+#define UIP_CLIENT_REMOTECLOSED 0x40
 #define UIP_CLIENT_RESTART 0x80
-#define UIP_CLIENT_STATEFLAGS (UIP_CLIENT_CONNECTED | UIP_CLIENT_CLOSE | UIP_CLIENT_CLOSED | UIP_CLIENT_RESTART)
+#define UIP_CLIENT_STATEFLAGS (UIP_CLIENT_CONNECTED | UIP_CLIENT_CLOSE | UIP_CLIENT_REMOTECLOSED | UIP_CLIENT_RESTART)
 #define UIP_CLIENT_SOCKETS ~UIP_CLIENT_STATEFLAGS
 
 typedef uint8_t uip_socket_ptr;
@@ -84,14 +84,17 @@ private:
 
   static uip_userdata_t all_data[UIP_CONNS];
   static uip_userdata_t* _allocateData();
-  static uip_userdata_t* _getData(struct uip_conn * conn);
-  
+
   static size_t _write(uip_userdata_t *,const uint8_t *buf, size_t size);
   static int _available(uip_userdata_t *);
 
   static memhandle * _currentBlock(memhandle* blocks);
   static void _eatBlock(memhandle* blocks);
   static void _flushBlocks(memhandle* blocks);
+
+#ifdef UIPETHERNET_DEBUG_CLIENT
+  static void _dumpAllData();
+#endif
 
   friend class UIPEthernetClass;
   friend class UIPServer;
