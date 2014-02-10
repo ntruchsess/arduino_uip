@@ -520,13 +520,13 @@ UIPClient::_eatBlock(memhandle* block)
   memhandle* start = block;
   Serial.print(F("eatblock("));
   Serial.print(*block);
-  Serial.print("): ");
+  Serial.print(F("): "));
   for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
     {
       Serial.print(start[i]);
-      Serial.print(" ");
+      Serial.print(F(" "));
     }
-  Serial.print("-> ");
+  Serial.print(F("-> "));
 #endif
   memhandle* end = block+(UIP_SOCKET_NUMPACKETS-1);
   UIPEthernet.network.freeBlock(*block);
