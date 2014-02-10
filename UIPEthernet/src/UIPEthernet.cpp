@@ -403,7 +403,7 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
       Serial.print(UIP_IPH_LEN + UIP_LLH_LEN + upper_layer_memlen);
       Serial.print(F("-"));
       Serial.print(UIP_IPH_LEN + UIP_LLH_LEN + upper_layer_len);
-      Serial.print(F"]: "));
+      Serial.print(F("]: "));
       Serial.println(htons(sum),HEX);
 #endif
     }
