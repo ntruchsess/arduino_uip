@@ -25,6 +25,8 @@
 #include "HardwareSerial.h"
 #endif
 
+#include "UIPUdp.h"
+
 extern "C"
 {
 #include "utility/uip-conf.h"
@@ -234,7 +236,7 @@ UIPEthernetClass::tick()
           // uip_len is set to a value > 0. */
           if (uip_len > 0)
             {
-              network_send();
+              UIPUDP::_send((uip_udp_userdata_t *)(uip_udp_conns[i].appstate));
             }
         }
 #endif /* UIP_UDP */
@@ -281,6 +283,7 @@ void UIPEthernetClass::init(const uint8_t* mac) {
   uip_seteth_addr(mac);
 
   uip_init();
+  uip_arp_init();
 }
 
 void UIPEthernetClass::configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet) {

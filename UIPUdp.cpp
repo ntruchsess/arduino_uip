@@ -187,7 +187,7 @@ UIPUDP::endPacket()
       uip_udp_periodic_conn(_uip_udp_conn);
       if (uip_len > 0)
         {
-          UIPEthernet.network_send();
+          _send(&appdata);
           return 1;
         }
     }
@@ -352,7 +352,7 @@ uipudp_appcall(void) {
 
 void
 UIPUDP::uip_callback() {
-  if (appdata_t *data = (appdata_t *)(uip_udp_conn->appstate))
+  if (uip_udp_userdata_t *data = (uip_udp_userdata_t *)(uip_udp_conn->appstate))
     {
       if (uip_newdata())
         {
@@ -396,29 +396,34 @@ UIPUDP::uip_callback() {
           Serial.println(UIPEthernet.network.blockSize(data->packet_out));
 #endif
           UIPEthernet.uip_packet = data->packet_out;
-          data->packet_out = NOBLOCK;
           UIPEthernet.uip_hdrlen = UIP_UDP_PHYH_LEN;
-          UIPEthernet.packetstate |= UIPETHERNET_SENDPACKET;
           uip_udp_send(data->out_pos - (UIP_UDP_PHYH_LEN));
-          uip_process(UIP_UDP_SEND_CONN); //generate udp + ip headers
-          uip_arp_out(); //add arp
-          if (uip_len == UIP_ARPHDRSIZE)
-            {
-              UIPEthernet.packetstate &= ~UIPETHERNET_SENDPACKET;
-#ifdef UIPETHERNET_DEBUG_UDP
-              Serial.println(F("udp, uip_poll results in ARP-packet"));
-#endif
-            }
-          else
-          //arp found ethaddr for ip (otherwise packet is replaced by arp-request)
-            {
-              data->send = false;
-#ifdef UIPETHERNET_DEBUG_UDP
-              Serial.print(F("udp, uip_packet to send: "));
-              Serial.println(UIPEthernet.uip_packet);
-#endif
-            }
         }
     }
+}
+
+void
+UIPUDP::_send(uip_udp_userdata_t *data) {
+  uip_arp_out(); //add arp
+  if (uip_len == UIP_ARPHDRSIZE)
+    {
+      UIPEthernet.uip_packet = NOBLOCK;
+      UIPEthernet.packetstate &= ~UIPETHERNET_SENDPACKET;
+#ifdef UIPETHERNET_DEBUG_UDP
+      Serial.println(F("udp, uip_poll results in ARP-packet"));
+#endif
+    }
+  else
+  //arp found ethaddr for ip (otherwise packet is replaced by arp-request)
+    {
+      data->send = false;
+      data->packet_out = NOBLOCK;
+      UIPEthernet.packetstate |= UIPETHERNET_SENDPACKET;
+#ifdef UIPETHERNET_DEBUG_UDP
+      Serial.print(F("udp, uip_packet to send: "));
+      Serial.println(UIPEthernet.uip_packet);
+#endif
+    }
+  UIPEthernet.network_send();
 }
 #endif
