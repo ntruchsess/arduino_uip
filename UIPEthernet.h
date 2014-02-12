@@ -82,15 +82,15 @@ public:
   IPAddress dnsServerIP();
 
 private:
-  IPAddress _dnsServerAddress;
-  DhcpClass* _dhcp;
-
-  struct uip_timer periodic_timer;
-
   memhandle in_packet;
   memhandle uip_packet;
   uint8_t uip_hdrlen;
   uint8_t packetstate;
+  
+  IPAddress _dnsServerAddress;
+  DhcpClass* _dhcp;
+
+  struct uip_timer periodic_timer;
 
   Enc28J60Network network;
 
