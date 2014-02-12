@@ -42,6 +42,7 @@
 #include "uip-neighbor.h"
 
 #include <string.h>
+#include <stdio.h>
 
 #define MAX_TIME 128
 
