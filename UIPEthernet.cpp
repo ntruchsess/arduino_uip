@@ -370,10 +370,6 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
   uint8_t upper_layer_memlen = upper_layer_len; // valid for UIP_PROTO_ICMP and UIP_PROTO_ICMP6
   switch(proto)
   {
-//  case UIP_PROTO_ICMP:
-//  case UIP_PROTO_ICMP6:
-//    upper_layer_memlen = upper_layer_len;
-//    break;
   case UIP_PROTO_TCP:
     upper_layer_memlen = (BUF->tcpoffset >> 4) << 2;
     break;
