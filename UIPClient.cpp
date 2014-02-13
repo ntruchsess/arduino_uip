@@ -530,8 +530,10 @@ UIPClient::_eatBlock(memhandle* block)
 #endif
   memhandle* end = block+(UIP_SOCKET_NUMPACKETS-1);
   UIPEthernet.network.freeBlock(*block);
-  while(block < end)
-    *block = *((block++)+1);
+  while(block < end) {
+    *block = *(block + 1);
+    block++;
+  }
   *end = NOBLOCK;
 #ifdef UIPETHERNET_DEBUG_CLIENT
   for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
