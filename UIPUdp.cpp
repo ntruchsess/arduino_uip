@@ -225,7 +225,7 @@ UIPUDP::parsePacket()
 #ifdef UIPETHERNET_DEBUG_UDP
       Serial.print(F("udp parsePacket freeing previous packet: "));
       Serial.println(appdata.packet_in);
-#endif;
+#endif
       UIPEthernet.network.freeBlock(appdata.packet_in);
     }
   memhandle *packet = &appdata.packets_in[0];
