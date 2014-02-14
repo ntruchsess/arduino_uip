@@ -25,7 +25,7 @@
 #include <Udp.h>
 #include "utility/mempool.h"
 extern "C" {
-  #include "utility/uip.h";
+  #include "utility/uip.h"
 }
 
 #define UIP_UDP_MAXDATALEN 1500
