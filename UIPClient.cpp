@@ -250,7 +250,7 @@ UIPClient::read(uint8_t *buf, size_t size)
 {
   if (*this)
     {
-      int remain = size;
+      unsigned int remain = size;
       memhandle* p = &data->packets_in[0];
       if (*p == NOBLOCK)
         return 0;
