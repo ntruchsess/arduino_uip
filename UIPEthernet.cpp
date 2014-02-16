@@ -37,18 +37,26 @@ extern "C"
 
 #define ETH_HDR ((struct uip_eth_hdr *)&uip_buf[0])
 
+memhandle UIPEthernetClass::in_packet(NOBLOCK);
+memhandle UIPEthernetClass::uip_packet(NOBLOCK);
+uint8_t UIPEthernetClass::uip_hdrlen(0);
+uint8_t UIPEthernetClass::packetstate(0);
+
+IPAddress UIPEthernetClass::_dnsServerAddress;
+DhcpClass* UIPEthernetClass::_dhcp(NULL);
+
+struct uip_timer UIPEthernetClass::periodic_timer;
+
+Enc28J60Network UIPEthernetClass::network;
+
 // Because uIP isn't encapsulated within a class we have to use global
 // variables, so we can only have one TCP/IP stack per program.
 
-UIPEthernetClass::UIPEthernetClass() :
-    in_packet(NOBLOCK),
-    uip_packet(NOBLOCK),
-    uip_hdrlen(0),
-    packetstate(0),
-    _dhcp(NULL)
+UIPEthernetClass::UIPEthernetClass()
 {
 }
 
+#if UIP_UDP
 int
 UIPEthernetClass::begin(const uint8_t* mac)
 {
@@ -68,6 +76,7 @@ UIPEthernetClass::begin(const uint8_t* mac)
   }
   return ret;
 }
+#endif
 
 void
 UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip)
@@ -102,6 +111,7 @@ UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddre
 int UIPEthernetClass::maintain(){
   tick();
   int rc = DHCP_CHECK_NONE;
+#if UIP_UDP
   if(_dhcp != NULL){
     //we have a pointer to dhcp, use it
     rc = _dhcp->checkLease();
@@ -120,6 +130,7 @@ int UIPEthernetClass::maintain(){
     }
   }
   return rc;
+#endif
 }
 
 IPAddress UIPEthernetClass::localIP()
@@ -277,7 +288,7 @@ sendandfree:
 }
 
 void UIPEthernetClass::init(const uint8_t* mac) {
-  uip_timer_set(&this->periodic_timer, CLOCK_SECOND / 4);
+  uip_timer_set(&periodic_timer, CLOCK_SECOND / 4);
 
   network.init((uint8_t*)mac);
   uip_seteth_addr(mac);
@@ -348,7 +359,11 @@ UIPEthernetClass::ipchksum(void)
 
 /*---------------------------------------------------------------------------*/
 uint16_t
+#if UIP_UDP
 UIPEthernetClass::upper_layer_chksum(uint8_t proto)
+#else
+uip_tcpchksum(void)
+#endif
 {
   uint16_t upper_layer_len;
   uint16_t sum;
@@ -362,28 +377,34 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
   /* First sum pseudoheader. */
 
   /* IP protocol and length fields. This addition cannot carry. */
+#if UIP_UDP
   sum = upper_layer_len + proto;
+#else
+  sum = upper_layer_len + UIP_PROTO_TCP;
+#endif
   /* Sum IP source and destination addresses. */
-  sum = chksum(sum, (u8_t *)&BUF->srcipaddr[0], 2 * sizeof(uip_ipaddr_t));
+  sum = UIPEthernetClass::chksum(sum, (u8_t *)&BUF->srcipaddr[0], 2 * sizeof(uip_ipaddr_t));
 
   uint8_t upper_layer_memlen;
+#if UIP_UDP
   switch(proto)
   {
-  case UIP_PROTO_TCP:
-    upper_layer_memlen = (BUF->tcpoffset >> 4) << 2;
-    break;
-#if UIP_UDP
-    case UIP_PROTO_UDP:
-    upper_layer_memlen = UIP_UDPH_LEN;
-    break;
-#endif
 //    case UIP_PROTO_ICMP:
 //    case UIP_PROTO_ICMP6:
-    default:
-      upper_layer_memlen = upper_layer_len;
-      break;
+//      upper_layer_memlen = upper_layer_len;
+//      break;
+  case UIP_PROTO_UDP:
+    upper_layer_memlen = UIP_UDPH_LEN;
+    break;
+  default:
+//  case UIP_PROTO_TCP:
+#endif
+    upper_layer_memlen = (BUF->tcpoffset >> 4) << 2;
+#if UIP_UDP
+    break;
   }
-  sum = chksum(sum, &uip_buf[UIP_IPH_LEN + UIP_LLH_LEN], upper_layer_memlen);
+#endif
+  sum = UIPEthernetClass::chksum(sum, &uip_buf[UIP_IPH_LEN + UIP_LLH_LEN], upper_layer_memlen);
 #ifdef UIPETHERNET_DEBUG_CHKSUM
   Serial.print(F("chksum uip_buf["));
   Serial.print(UIP_IPH_LEN + UIP_LLH_LEN);
@@ -394,9 +415,9 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
 #endif
   if (upper_layer_memlen < upper_layer_len)
     {
-      sum = network.chksum(
+      sum = UIPEthernetClass::network.chksum(
           sum,
-          uip_packet,
+          UIPEthernetClass::uip_packet,
           UIP_IPH_LEN + UIP_LLH_LEN + upper_layer_memlen,
           upper_layer_len - upper_layer_memlen
       );
@@ -420,6 +441,7 @@ uip_ipchksum(void)
   return UIPEthernet.ipchksum();
 }
 
+#if UIP_UDP
 uint16_t
 uip_tcpchksum(void)
 {
@@ -427,7 +449,6 @@ uip_tcpchksum(void)
   return sum;
 }
 
-#if UIP_UDP
 uint16_t
 uip_udpchksum(void)
 {

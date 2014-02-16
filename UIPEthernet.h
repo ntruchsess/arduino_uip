@@ -82,24 +82,24 @@ public:
   IPAddress dnsServerIP();
 
 private:
-  memhandle in_packet;
-  memhandle uip_packet;
-  uint8_t uip_hdrlen;
-  uint8_t packetstate;
+  static memhandle in_packet;
+  static memhandle uip_packet;
+  static uint8_t uip_hdrlen;
+  static uint8_t packetstate;
   
-  IPAddress _dnsServerAddress;
-  DhcpClass* _dhcp;
+  static IPAddress _dnsServerAddress;
+  static DhcpClass* _dhcp;
 
-  struct uip_timer periodic_timer;
+  static struct uip_timer periodic_timer;
 
-  Enc28J60Network network;
+  static Enc28J60Network network;
 
-  void init(const uint8_t* mac);
-  void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
+  static void init(const uint8_t* mac);
+  static void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
 
-  void tick();
+  static void tick();
 
-  boolean network_send();
+  static boolean network_send();
 
   friend class UIPServer;
 
@@ -109,8 +109,9 @@ private:
 
   static uint16_t chksum(uint16_t sum, const uint8_t* data, uint16_t len);
   static uint16_t ipchksum(void);
-  uint16_t upper_layer_chksum(uint8_t proto);
-
+#if UIP_UDP
+  static uint16_t upper_layer_chksum(uint8_t proto);
+#endif
   friend uint16_t uip_ipchksum(void);
   friend uint16_t uip_tcpchksum(void);
   friend uint16_t uip_udpchksum(void);
