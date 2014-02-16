@@ -369,10 +369,6 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
   uint8_t upper_layer_memlen;
   switch(proto)
   {
-  case UIP_PROTO_ICMP:
-  case UIP_PROTO_ICMP6:
-    upper_layer_memlen = upper_layer_len;
-    break;
   case UIP_PROTO_TCP:
     upper_layer_memlen = (BUF->tcpoffset >> 4) << 2;
     break;
@@ -381,6 +377,11 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
     upper_layer_memlen = UIP_UDPH_LEN;
     break;
 #endif
+//    case UIP_PROTO_ICMP:
+//    case UIP_PROTO_ICMP6:
+    default:
+      upper_layer_memlen = upper_layer_len;
+      break;
   }
   sum = chksum(sum, &uip_buf[UIP_IPH_LEN + UIP_LLH_LEN], upper_layer_memlen);
 #ifdef UIPETHERNET_DEBUG_CHKSUM
