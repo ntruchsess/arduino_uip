@@ -118,6 +118,8 @@ MemoryPool::allocBlock(memaddress size)
 void
 MemoryPool::freeBlock(memhandle handle)
 {
+  if (handle == NOBLOCK)
+    return;
   memblock *b = &blocks[POOLSTART];
 
   do
