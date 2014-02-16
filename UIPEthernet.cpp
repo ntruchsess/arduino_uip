@@ -366,7 +366,8 @@ UIPEthernetClass::upper_layer_chksum(uint8_t proto)
   /* Sum IP source and destination addresses. */
   sum = chksum(sum, (u8_t *)&BUF->srcipaddr[0], 2 * sizeof(uip_ipaddr_t));
 
-  uint8_t upper_layer_memlen;
+  // proto can only be one of { UIP_PROTO_ICMP, UIP_PROTO_ICMP6, UIP_PROTO_TCP, UIP_PROTO_UDP }
+  uint8_t upper_layer_memlen = upper_layer_len; // valid for UIP_PROTO_ICMP and UIP_PROTO_ICMP6
   switch(proto)
   {
   case UIP_PROTO_TCP:
