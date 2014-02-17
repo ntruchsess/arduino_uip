@@ -148,7 +148,7 @@ void Enc28J60Network::init(uint8_t* macaddr)
 memhandle
 Enc28J60Network::receivePacket()
 {
-  uint16_t rxstat;
+  uint8_t rxstat;
   uint16_t len;
   // check if a packet has been received and buffered
   //if( !(readReg(EIR) & EIR_PKTIF) ){
@@ -167,7 +167,7 @@ Enc28J60Network::receivePacket()
       len -= 4; //remove the CRC count
       // read the receive status (see datasheet page 43)
       rxstat = readOp(ENC28J60_READ_BUF_MEM, 0);
-      rxstat |= readOp(ENC28J60_READ_BUF_MEM, 0) << 8;
+      //rxstat |= readOp(ENC28J60_READ_BUF_MEM, 0) << 8;
       // decrement the packet counter indicate we are done with this packet
       writeOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
       // check CRC and symbol errors (see datasheet page 44, table 7-3):
