@@ -195,7 +195,7 @@ Enc28J60Network::setERXRDPT()
 memaddress
 Enc28J60Network::blockSize(memhandle handle)
 {
-  return handle == UIP_RECEIVEBUFFERHANDLE ? receivePkt.size : blocks[handle].size;
+  return handle == NOBLOCK ? 0 : handle == UIP_RECEIVEBUFFERHANDLE ? receivePkt.size : blocks[handle].size;
 }
 
 void

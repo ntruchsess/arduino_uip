@@ -31,13 +31,10 @@ extern "C" {
 #define UIP_UDP_MAXDATALEN 1500
 #define UIP_UDP_PHYH_LEN UIP_LLH_LEN+UIP_IPUDPH_LEN
 #define UIP_UDP_MAXPACKETSIZE UIP_UDP_MAXDATALEN+UIP_UDP_PHYH_LEN
-#ifndef UIP_UDP_NUMPACKETS
-#define UIP_UDP_NUMPACKETS 5
-#endif
 
 typedef struct {
   memaddress out_pos;
-  memhandle packets_in[UIP_UDP_NUMPACKETS];
+  memhandle packet_next;
   memhandle packet_in;
   memhandle packet_out;
   boolean send;

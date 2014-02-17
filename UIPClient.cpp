@@ -235,8 +235,6 @@ UIPClient::_available(uip_userdata_t *u)
   int len = 0;
   for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
     {
-      if (u->packets_in[i] == NOBLOCK)
-        break;
       len += UIPEthernetClass::network.blockSize(u->packets_in[i]);
     }
   return len;
@@ -247,10 +245,10 @@ UIPClient::read(uint8_t *buf, size_t size)
 {
   if (*this)
     {
-      unsigned int remain = size;
+      uint16_t remain = size;
       if (data->packets_in[0] == NOBLOCK)
         return 0;
-      unsigned int read;
+      uint16_t read;
       do
         {
           read = UIPEthernetClass::network.readPacket(data->packets_in[0],0,buf+size-remain,remain);
@@ -296,11 +294,10 @@ UIPClient::peek()
 {
   if (*this)
     {
-      memhandle p = data->packets_in[0];
-      if (p != NOBLOCK)
+      if (data->packets_in[0] != NOBLOCK)
         {
           uint8_t c;
-          UIPEthernetClass::network.readPacket(p,0,&c,1);
+          UIPEthernetClass::network.readPacket(data->packets_in[0],0,&c,1);
           return c;
         }
     }
@@ -359,26 +356,18 @@ UIPClient::uip_callback()
               memhandle newPacket = UIPEthernetClass::network.allocBlock(uip_len);
               if (newPacket != NOBLOCK)
                 {
-                  uint8_t p = _currentBlock(&u->packets_in[0]);
-                  //if it's not the first packet
-                  if (u->packets_in[p] != NOBLOCK)
+                  for (uint8_t i=0; i < UIP_SOCKET_NUMPACKETS; i++)
                     {
-                      if (p < UIP_SOCKET_NUMPACKETS-1)
-                        p++;
-                      //if this is the last slot stop this connection
-                      if (p >= UIP_SOCKET_NUMPACKETS-2)
+                      if (u->packets_in[i] == NOBLOCK)
                         {
-                          uip_stop();
-                          //if there's no free slot left omit loosing this packet and (again) stop this connection
-                          if (p == UIP_SOCKET_NUMPACKETS-1)
-                            goto reject_newdata;
+                          if (i == UIP_SOCKET_NUMPACKETS-1)
+                            uip_stop();
+                          UIPEthernetClass::network.copyPacket(newPacket,0,UIPEthernetClass::in_packet,((uint8_t*)uip_appdata)-uip_buf,uip_len);
+                          u->packets_in[i] = newPacket;
+                          goto finish_newdata;
                         }
                     }
-                  UIPEthernetClass::network.copyPacket(newPacket,0,UIPEthernetClass::in_packet,((uint8_t*)uip_appdata)-uip_buf,uip_len);
-                  u->packets_in[p] = newPacket;
-                  goto finish_newdata;
                 }
-reject_newdata:
               UIPEthernetClass::packetstate &= ~UIPETHERNET_FREEPACKET;
               uip_stop();
             }
@@ -425,26 +414,25 @@ finish_newdata:
 #ifdef UIPETHERNET_DEBUG_CLIENT
           //Serial.println(F("UIPClient uip_poll"));
 #endif
-          memhandle p = u->packets_out[0];
-          if (p != NOBLOCK)
+          if (u->packets_out[0] != NOBLOCK)
             {
               if (u->packets_out[1] == NOBLOCK)
                 {
                   uip_len = u->out_pos;
                   if (uip_len > 0)
                     {
-                      UIPEthernetClass::network.resizeBlock(p,0,uip_len);
+                      UIPEthernetClass::network.resizeBlock(u->packets_out[0],0,uip_len);
                     }
                 }
               else
-                uip_len = UIPEthernetClass::network.blockSize(p);
+                uip_len = UIPEthernetClass::network.blockSize(u->packets_out[0]);
               if (uip_len > 0)
                 {
                   UIPEthernetClass::uip_hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
                   UIPEthernetClass::uip_packet = UIPEthernetClass::network.allocBlock(UIPEthernetClass::uip_hdrlen+uip_len);
                   if (UIPEthernetClass::uip_packet != NOBLOCK)
                     {
-                      UIPEthernetClass::network.copyPacket(UIPEthernetClass::uip_packet,UIPEthernetClass::uip_hdrlen,p,0,uip_len);
+                      UIPEthernetClass::network.copyPacket(UIPEthernetClass::uip_packet,UIPEthernetClass::uip_hdrlen,u->packets_out[0],0,uip_len);
                       UIPEthernetClass::packetstate |= UIPETHERNET_SENDPACKET;
                       uip_send(uip_appdata,uip_len);
                     }
