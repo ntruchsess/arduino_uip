@@ -81,6 +81,8 @@ public:
   uint16_t writePacket(memhandle handle, memaddress position, uint8_t* buffer, uint16_t len);
   void copyPacket(memhandle dest, memaddress dest_pos, memhandle src, memaddress src_pos, uint16_t len);
   uint16_t chksum(uint16_t sum, memhandle handle, memaddress pos, uint16_t len);
+  void powerOn();
+  void powerOff();
 };
 
 #endif /* ENC28J60NETWORK_H_ */

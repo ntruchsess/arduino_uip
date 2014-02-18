@@ -81,6 +81,8 @@ public:
   IPAddress gatewayIP();
   IPAddress dnsServerIP();
 
+  Enc28J60Network getNetwork();
+
 private:
   static memhandle in_packet;
   static memhandle uip_packet;
