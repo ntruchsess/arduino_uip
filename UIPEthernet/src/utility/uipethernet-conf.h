@@ -9,7 +9,6 @@
 #define UIP_CONF_UDP             1
 #define UIP_CONF_BROADCAST       1
 #define UIP_CONF_UDP_CONNS       4
-#define UIP_UDP_NUMPACKETS       5
 
 /* number of attempts on write before returning number of bytes sent so far
  * set to -1 to block until connection is closed by timeout */

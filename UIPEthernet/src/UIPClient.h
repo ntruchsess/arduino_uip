@@ -88,7 +88,7 @@ private:
   static size_t _write(uip_userdata_t *,const uint8_t *buf, size_t size);
   static int _available(uip_userdata_t *);
 
-  static memhandle * _currentBlock(memhandle* blocks);
+  static uint8_t _currentBlock(memhandle* blocks);
   static void _eatBlock(memhandle* blocks);
   static void _flushBlocks(memhandle* blocks);
 

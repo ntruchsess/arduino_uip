@@ -28,7 +28,7 @@ UIPServer::UIPServer(uint16_t port) : _port(htons(port))
 
 UIPClient UIPServer::available()
 {
-  UIPEthernet.tick();
+  UIPEthernetClass::tick();
   for ( uip_userdata_t* data = &UIPClient::all_data[0]; data < &UIPClient::all_data[UIP_CONNS]; data++ )
     {
       if (data->packets_in[0] != NOBLOCK
@@ -42,7 +42,7 @@ UIPClient UIPServer::available()
 void UIPServer::begin()
 {
   uip_listen(_port);
-  UIPEthernet.tick();
+  UIPEthernetClass::tick();
 }
 
 size_t UIPServer::write(uint8_t c)
