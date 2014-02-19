@@ -263,8 +263,14 @@ UIPUDP::read(unsigned char* buffer, size_t len)
   UIPEthernetClass::tick();
   if (appdata.packet_in != NOBLOCK)
     {
-      int read = UIPEthernetClass::network.readPacket(appdata.packet_in,0,buffer,len);
-      UIPEthernetClass::network.resizeBlock(appdata.packet_in,read);
+      memaddress read = UIPEthernetClass::network.readPacket(appdata.packet_in,0,buffer,len);
+      if (read == UIPEthernetClass::network.blockSize(appdata.packet_in))
+        {
+          UIPEthernetClass::network.freeBlock(appdata.packet_in);
+          appdata.packet_in = NOBLOCK;
+        }
+      else
+        UIPEthernetClass::network.resizeBlock(appdata.packet_in,read);
       return read;
     }
   return 0;
