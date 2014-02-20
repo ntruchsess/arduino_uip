@@ -101,7 +101,6 @@ private:
 
   friend void uipclient_appcall(void);
 
-  static void uip_callback();
 };
 
 #endif

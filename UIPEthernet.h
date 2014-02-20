@@ -92,8 +92,6 @@ private:
 
   static struct uip_timer periodic_timer;
 
-  static Enc28J60Network network;
-
   static void init(const uint8_t* mac);
   static void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
 
@@ -115,6 +113,9 @@ private:
   friend uint16_t uip_ipchksum(void);
   friend uint16_t uip_tcpchksum(void);
   friend uint16_t uip_udpchksum(void);
+
+  friend void uipclient_appcall(void);
+  friend void uipudp_appcall(void);
 
 #if UIP_CONF_IPV6
   uint16_t uip_icmp6chksum(void);

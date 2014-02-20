@@ -68,9 +68,9 @@ UIPUDP::stop()
       uip_udp_remove(_uip_udp_conn);
       _uip_udp_conn->appstate = NULL;
       _uip_udp_conn=NULL;
-      UIPEthernetClass::network.freeBlock(appdata.packet_in);
-      UIPEthernetClass::network.freeBlock(appdata.packet_next);
-      UIPEthernetClass::network.freeBlock(appdata.packet_out);
+      Enc28J60Network::freeBlock(appdata.packet_in);
+      Enc28J60Network::freeBlock(appdata.packet_next);
+      Enc28J60Network::freeBlock(appdata.packet_out);
       memset(&appdata,0,sizeof(appdata));
     }
 }
@@ -124,7 +124,7 @@ UIPUDP::beginPacket(IPAddress ip, uint16_t port)
     {
       if (appdata.packet_out == NOBLOCK)
         {
-          appdata.packet_out = UIPEthernetClass::network.allocBlock(UIP_UDP_MAXPACKETSIZE);
+          appdata.packet_out = Enc28J60Network::allocBlock(UIP_UDP_MAXPACKETSIZE);
           appdata.out_pos = UIP_UDP_PHYH_LEN;
           if (appdata.packet_out != NOBLOCK)
             return 1;
@@ -168,7 +168,7 @@ UIPUDP::endPacket()
   if (_uip_udp_conn && appdata.packet_out != NOBLOCK)
     {
       appdata.send = true;
-      UIPEthernetClass::network.resizeBlock(appdata.packet_out,0,appdata.out_pos);
+      Enc28J60Network::resizeBlock(appdata.packet_out,0,appdata.out_pos);
       uip_udp_periodic_conn(_uip_udp_conn);
       if (uip_len > 0)
         {
@@ -192,7 +192,7 @@ UIPUDP::write(const uint8_t *buffer, size_t size)
 {
   if (appdata.packet_out != NOBLOCK)
     {
-      size_t ret = UIPEthernetClass::network.writePacket(appdata.packet_out,appdata.out_pos,(uint8_t*)buffer,size);
+      size_t ret = Enc28J60Network::writePacket(appdata.packet_out,appdata.out_pos,(uint8_t*)buffer,size);
       appdata.out_pos += ret;
       return ret;
     }
@@ -212,7 +212,7 @@ UIPUDP::parsePacket()
       Serial.println(appdata.packet_in);
     }
 #endif
-  UIPEthernetClass::network.freeBlock(appdata.packet_in);
+  Enc28J60Network::freeBlock(appdata.packet_in);
 
   appdata.packet_in = appdata.packet_next;
   appdata.packet_next = NOBLOCK;
@@ -224,7 +224,7 @@ UIPUDP::parsePacket()
       Serial.print(appdata.packet_in);
     }
 #endif
-  int size = UIPEthernetClass::network.blockSize(appdata.packet_in);
+  int size = Enc28J60Network::blockSize(appdata.packet_in);
 #ifdef UIPETHERNET_DEBUG_UDP
   if (appdata.packet_in != NOBLOCK)
     {
@@ -240,7 +240,7 @@ int
 UIPUDP::available()
 {
   UIPEthernetClass::tick();
-  return UIPEthernetClass::network.blockSize(appdata.packet_in);
+  return Enc28J60Network::blockSize(appdata.packet_in);
 }
 
 // Read a single byte from the current packet
@@ -263,14 +263,14 @@ UIPUDP::read(unsigned char* buffer, size_t len)
   UIPEthernetClass::tick();
   if (appdata.packet_in != NOBLOCK)
     {
-      memaddress read = UIPEthernetClass::network.readPacket(appdata.packet_in,0,buffer,len);
-      if (read == UIPEthernetClass::network.blockSize(appdata.packet_in))
+      memaddress read = Enc28J60Network::readPacket(appdata.packet_in,0,buffer,len);
+      if (read == Enc28J60Network::blockSize(appdata.packet_in))
         {
-          UIPEthernetClass::network.freeBlock(appdata.packet_in);
+          Enc28J60Network::freeBlock(appdata.packet_in);
           appdata.packet_in = NOBLOCK;
         }
       else
-        UIPEthernetClass::network.resizeBlock(appdata.packet_in,read);
+        Enc28J60Network::resizeBlock(appdata.packet_in,read);
       return read;
     }
   return 0;
@@ -284,7 +284,7 @@ UIPUDP::peek()
   if (appdata.packet_in != NOBLOCK)
     {
       unsigned char c;
-      if (UIPEthernetClass::network.readPacket(appdata.packet_in,0,&c,1) == 1)
+      if (Enc28J60Network::readPacket(appdata.packet_in,0,&c,1) == 1)
         return c;
     }
   return -1;
@@ -295,7 +295,7 @@ void
 UIPUDP::flush()
 {
   UIPEthernetClass::tick();
-  UIPEthernetClass::network.freeBlock(appdata.packet_in);
+  Enc28J60Network::freeBlock(appdata.packet_in);
   appdata.packet_in = NOBLOCK;
 }
 
@@ -317,11 +317,6 @@ UIPUDP::remotePort()
 
 void
 uipudp_appcall(void) {
-  UIPUDP::uip_callback();
-}
-
-void
-UIPUDP::uip_callback() {
   if (uip_udp_userdata_t *data = (uip_udp_userdata_t *)(uip_udp_conn->appstate))
     {
       if (uip_newdata())
@@ -330,17 +325,17 @@ UIPUDP::uip_callback() {
             {
               uip_udp_conn->rport = UDPBUF->srcport;
               uip_ipaddr_copy(uip_udp_conn->ripaddr,UDPBUF->srcipaddr);
-              data->packet_next = UIPEthernetClass::network.allocBlock(ntohs(UDPBUF->udplen)-UIP_UDPH_LEN);
+              data->packet_next = Enc28J60Network::allocBlock(ntohs(UDPBUF->udplen)-UIP_UDPH_LEN);
                   //if we are unable to allocate memory the packet is dropped. udp doesn't guarantee packet delivery
               if (data->packet_next != NOBLOCK)
                 {
                   //discard Linklevel and IP and udp-header and any trailing bytes:
-                  UIPEthernetClass::network.copyPacket(data->packet_next,0,UIPEthernetClass::in_packet,UIP_UDP_PHYH_LEN,UIPEthernetClass::network.blockSize(data->packet_next));
+                  Enc28J60Network::copyPacket(data->packet_next,0,UIPEthernetClass::in_packet,UIP_UDP_PHYH_LEN,Enc28J60Network::blockSize(data->packet_next));
     #ifdef UIPETHERNET_DEBUG_UDP
                   Serial.print(F("udp, uip_newdata received packet: "));
                   Serial.print(data->packet_next);
                   Serial.print(F(", size: "));
-                  Serial.println(UIPEthernetClass::network.blockSize(data->packet_next));
+                  Serial.println(Enc28J60Network::blockSize(data->packet_next));
     #endif
                 }
             }
@@ -352,7 +347,7 @@ UIPUDP::uip_callback() {
           Serial.print(F("udp, uip_poll preparing packet to send: "));
           Serial.print(data->packet_out);
           Serial.print(F(", size: "));
-          Serial.println(UIPEthernetClass::network.blockSize(data->packet_out));
+          Serial.println(Enc28J60Network::blockSize(data->packet_out));
 #endif
           UIPEthernetClass::uip_packet = data->packet_out;
           UIPEthernetClass::uip_hdrlen = UIP_UDP_PHYH_LEN;
