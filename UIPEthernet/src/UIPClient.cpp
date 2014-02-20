@@ -171,7 +171,7 @@ UIPClient::_write(uip_userdata_t* u, const uint8_t *buf, size_t size)
       if (u->packets_out[p] == NOBLOCK)
         {
 newpacket:
-          u->packets_out[p] = UIPEthernetClass::network.allocBlock(UIP_SOCKET_DATALEN);
+          u->packets_out[p] = Enc28J60Network::allocBlock(UIP_SOCKET_DATALEN);
           if (u->packets_out[p] == NOBLOCK)
             {
 #if UIP_ATTEMPTS_ON_WRITE > 0
@@ -197,7 +197,7 @@ newpacket:
       Serial.write((uint8_t*)buf+size-remain,remain);
       Serial.println(F("'"));
 #endif
-      written = UIPEthernetClass::network.writePacket(u->packets_out[p],u->out_pos,(uint8_t*)buf+size-remain,remain);
+      written = Enc28J60Network::writePacket(u->packets_out[p],u->out_pos,(uint8_t*)buf+size-remain,remain);
       remain -= written;
       u->out_pos+=written;
       if (remain > 0)
@@ -235,7 +235,7 @@ UIPClient::_available(uip_userdata_t *u)
   int len = 0;
   for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
     {
-      len += UIPEthernetClass::network.blockSize(u->packets_in[i]);
+      len += Enc28J60Network::blockSize(u->packets_in[i]);
     }
   return len;
 }
@@ -251,8 +251,8 @@ UIPClient::read(uint8_t *buf, size_t size)
       uint16_t read;
       do
         {
-          read = UIPEthernetClass::network.readPacket(data->packets_in[0],0,buf+size-remain,remain);
-          if (read == UIPEthernetClass::network.blockSize(data->packets_in[0]))
+          read = Enc28J60Network::readPacket(data->packets_in[0],0,buf+size-remain,remain);
+          if (read == Enc28J60Network::blockSize(data->packets_in[0]))
             {
               remain -= read;
               _eatBlock(&data->packets_in[0]);
@@ -270,7 +270,7 @@ UIPClient::read(uint8_t *buf, size_t size)
             }
           else
             {
-              UIPEthernetClass::network.resizeBlock(data->packets_in[0],read);
+              Enc28J60Network::resizeBlock(data->packets_in[0],read);
               break;
             }
         }
@@ -297,7 +297,7 @@ UIPClient::peek()
       if (data->packets_in[0] != NOBLOCK)
         {
           uint8_t c;
-          UIPEthernetClass::network.readPacket(data->packets_in[0],0,&c,1);
+          Enc28J60Network::readPacket(data->packets_in[0],0,&c,1);
           return c;
         }
     }
@@ -316,12 +316,6 @@ UIPClient::flush()
 void
 uipclient_appcall(void)
 {
-  UIPClient::uip_callback();
-}
-
-void
-UIPClient::uip_callback()
-{
   uip_userdata_t *u = (uip_userdata_t*)uip_conn->appstate;
   if (!u && uip_connected())
     {
@@ -329,7 +323,7 @@ UIPClient::uip_callback()
       Serial.println(F("UIPClient uip_connected"));
       _dumpAllData();
 #endif
-      u = (uip_userdata_t*) _allocateData();
+      u = (uip_userdata_t*) UIPClient::_allocateData();
       if (u)
         {
           uip_conn->appstate = u;
@@ -353,7 +347,7 @@ UIPClient::uip_callback()
 #endif
           if (uip_len && !(u->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_REMOTECLOSED)))
             {
-              memhandle newPacket = UIPEthernetClass::network.allocBlock(uip_len);
+              memhandle newPacket = Enc28J60Network::allocBlock(uip_len);
               if (newPacket != NOBLOCK)
                 {
                   for (uint8_t i=0; i < UIP_SOCKET_NUMPACKETS; i++)
@@ -362,7 +356,7 @@ UIPClient::uip_callback()
                         {
                           if (i == UIP_SOCKET_NUMPACKETS-1)
                             uip_stop();
-                          UIPEthernetClass::network.copyPacket(newPacket,0,UIPEthernetClass::in_packet,((uint8_t*)uip_appdata)-uip_buf,uip_len);
+                          Enc28J60Network::copyPacket(newPacket,0,UIPEthernetClass::in_packet,((uint8_t*)uip_appdata)-uip_buf,uip_len);
                           u->packets_in[i] = newPacket;
                           goto finish_newdata;
                         }
@@ -386,7 +380,7 @@ finish_newdata:
           _dumpAllData();
 #endif
           // drop outgoing packets not sent yet:
-          _flushBlocks(&u->packets_out[0]);
+          UIPClient::_flushBlocks(&u->packets_out[0]);
           if (u->packets_in[0] != NOBLOCK)
             {
               ((uip_userdata_closed_t *)u)->lport = uip_conn->lport;
@@ -407,7 +401,7 @@ finish_newdata:
 #ifdef UIPETHERNET_DEBUG_CLIENT
           Serial.println(F("UIPClient uip_acked"));
 #endif
-          _eatBlock(&u->packets_out[0]);
+          UIPClient::_eatBlock(&u->packets_out[0]);
         }
       if (uip_poll() || uip_rexmit())
         {
@@ -421,18 +415,18 @@ finish_newdata:
                   uip_len = u->out_pos;
                   if (uip_len > 0)
                     {
-                      UIPEthernetClass::network.resizeBlock(u->packets_out[0],0,uip_len);
+                      Enc28J60Network::resizeBlock(u->packets_out[0],0,uip_len);
                     }
                 }
               else
-                uip_len = UIPEthernetClass::network.blockSize(u->packets_out[0]);
+                uip_len = Enc28J60Network::blockSize(u->packets_out[0]);
               if (uip_len > 0)
                 {
                   UIPEthernetClass::uip_hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
-                  UIPEthernetClass::uip_packet = UIPEthernetClass::network.allocBlock(UIPEthernetClass::uip_hdrlen+uip_len);
+                  UIPEthernetClass::uip_packet = Enc28J60Network::allocBlock(UIPEthernetClass::uip_hdrlen+uip_len);
                   if (UIPEthernetClass::uip_packet != NOBLOCK)
                     {
-                      UIPEthernetClass::network.copyPacket(UIPEthernetClass::uip_packet,UIPEthernetClass::uip_hdrlen,u->packets_out[0],0,uip_len);
+                      Enc28J60Network::copyPacket(UIPEthernetClass::uip_packet,UIPEthernetClass::uip_hdrlen,u->packets_out[0],0,uip_len);
                       UIPEthernetClass::packetstate |= UIPETHERNET_SENDPACKET;
                       uip_send(uip_appdata,uip_len);
                     }
@@ -513,7 +507,7 @@ UIPClient::_eatBlock(memhandle* block)
     }
   Serial.print(F("-> "));
 #endif
-  UIPEthernetClass::network.freeBlock(block[0]);
+  Enc28J60Network::freeBlock(block[0]);
   for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS-1; i++)
     {
       block[i] = block[i+1];
@@ -534,7 +528,7 @@ UIPClient::_flushBlocks(memhandle* block)
 {
   for (uint8_t i = 0; i < UIP_SOCKET_NUMPACKETS; i++)
     {
-      UIPEthernetClass::network.freeBlock(block[i]);
+      Enc28J60Network::freeBlock(block[i]);
     }
 }
 

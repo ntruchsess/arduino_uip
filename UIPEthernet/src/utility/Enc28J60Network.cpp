@@ -1,5 +1,5 @@
 /*
- Enc28J60Network.h
+ Enc28J60NetworkClass.h
  UIPEthernet network driver for Microchip ENC28J60 Ethernet Interface.
 
  Copyright (c) 2013 Norbert Truchsess <norbert.truchsess@t-online.de>
@@ -61,14 +61,14 @@ extern "C" {
 
 
 
-Enc28J60Network::Enc28J60Network() :
-    MemoryPool(TXSTART_INIT+1, TXSTOP_INIT-TXSTART_INIT), // 1 byte in between RX_STOP_INIT and pool to allow prepending of controlbyte
-    bank(0xff)
-{
-}
+uint16_t Enc28J60Network::nextPacketPtr;
+uint8_t Enc28J60Network::bank=0xff;
+
+struct memblock Enc28J60Network::receivePkt;
 
 void Enc28J60Network::init(uint8_t* macaddr)
 {
+  MemoryPool::init(); // 1 byte in between RX_STOP_INIT and pool to allow prepending of controlbyte
   // initialize I/O
   // ss as output:
   pinMode(ENC28J60_CONTROL_CS, OUTPUT);
@@ -357,19 +357,22 @@ Enc28J60Network::copyPacket(memhandle dest_pkt, memaddress dest_pos, memhandle s
 {
   memblock *dest = &blocks[dest_pkt];
   memblock *src = src_pkt == UIP_RECEIVEBUFFERHANDLE ? &receivePkt : &blocks[src_pkt];
-  memblock_mv_cb(dest->begin+dest_pos,src->begin+src_pos,len);
+  enc28J60_mempool_block_move_callback(dest->begin+dest_pos,src->begin+src_pos,len);
   // Move the RX read pointer to the start of the next received packet
   // This frees the memory we just read out
   setERXRDPT();
 }
 
 void
-Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
+enc28J60_mempool_block_move_callback(memaddress dest, memaddress src, memaddress len)
 {
+//void
+//Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
+//{
   //as ENC28J60 DMA is unable to copy single bytes:
   if (len == 1)
     {
-      writeByte(dest,readByte(src));
+      Enc28J60Network::writeByte(dest,Enc28J60Network::readByte(src));
     }
   else
     {
@@ -390,11 +393,11 @@ Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
        prevent a never ending DMA operation which
        would overwrite the entire 8-Kbyte buffer.
        */
-      writeRegPair(EDMASTL, src);
-      writeRegPair(EDMADSTL, dest);
+      Enc28J60Network::writeRegPair(EDMASTL, src);
+      Enc28J60Network::writeRegPair(EDMADSTL, dest);
 
       if ((src <= RXSTOP_INIT)&& (len > RXSTOP_INIT))len -= (RXSTOP_INIT-RXSTART_INIT);
-      writeRegPair(EDMANDL, len);
+      Enc28J60Network::writeRegPair(EDMANDL, len);
 
       /*
        2. If an interrupt at the end of the copy process is
@@ -402,13 +405,13 @@ Enc28J60Network::memblock_mv_cb(uint16_t dest, uint16_t src, uint16_t len)
        clear EIR.DMAIF.
 
        3. Verify that ECON1.CSUMEN is clear. */
-      writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_CSUMEN);
+      Enc28J60Network::writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_CSUMEN);
 
       /* 4. Start the DMA copy by setting ECON1.DMAST. */
-      writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_DMAST);
+      Enc28J60Network::writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_DMAST);
 
       // wait until runnig DMA is completed
-      while (readOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_DMAST);
+      while (Enc28J60Network::readOp(ENC28J60_READ_CTRL_REG, ECON1) & ECON1_DMAST);
     }
 }
 
@@ -648,3 +651,4 @@ Enc28J60Network::chksum(uint16_t sum, memhandle handle, memaddress pos, uint16_t
   /* Return sum in host byte order. */
   return sum;
 }
+

@@ -118,8 +118,6 @@ private:
 
   friend void uipudp_appcall(void);
 
-  static void uip_callback();
-
   friend class UIPEthernetClass;
   static void _send(uip_udp_userdata_t *data);
 
