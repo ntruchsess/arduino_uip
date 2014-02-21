@@ -72,6 +72,7 @@ void loop() {
               if ((signed long)(millis() - next) > 0)
                 {
                   Serial.println(F("timed out"));
+                  client.stop();
                   break;
                 }
             }

@@ -1,5 +1,5 @@
 /*
- UIPClient.cpp - Arduino implementation of a uIP wrapper class.
+ UIPClientExt.cpp - Arduino implementation of a uIP wrapper class.
  Copyright (c) 2013 Norbert Truchsess <norbert.truchsess@t-online.de>
  All rights reserved.
 
