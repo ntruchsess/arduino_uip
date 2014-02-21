@@ -98,9 +98,22 @@ private:
 
   friend class UIPEthernetClass;
   friend class UIPServer;
+  friend class UIPClientExt;
 
   friend void uipclient_appcall(void);
+};
 
+class UIPClientExt : public UIPClient {
+
+public:
+  UIPClientExt();
+  int connectNB(IPAddress ip, uint16_t port);
+  void stop();
+  uint8_t connected();
+  operator bool();
+
+private:
+  struct uip_conn* conn;
 };
 
 #endif

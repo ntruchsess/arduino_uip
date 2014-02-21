@@ -102,6 +102,7 @@ private:
   friend class UIPServer;
 
   friend class UIPClient;
+  friend class UIPClientExt;
 
   friend class UIPUDP;
 
