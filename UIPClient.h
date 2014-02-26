@@ -21,6 +21,7 @@
 #define UIPCLIENT_H
 
 #include "ethernet_comp.h"
+#include "Print.h"
 #import "Client.h"
 #import "utility/mempool.h"
 
@@ -75,6 +76,8 @@ public:
   int read();
   int peek();
   void flush();
+
+  using Print::write;
 
 private:
   UIPClient(struct uip_conn *_conn);
