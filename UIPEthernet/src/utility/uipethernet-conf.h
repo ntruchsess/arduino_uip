@@ -14,4 +14,8 @@
  * set to -1 to block until connection is closed by timeout */
 #define UIP_ATTEMPTS_ON_WRITE    -1
 
+/* timeout after which UIPClient::connect gives up. The timeout is specified in seconds.
+ * if set to a number <= 0 connect will timeout when uIP does (which might be longer than you expect...) */
+#define UIP_CONNECT_TIMEOUT      -1
+
 #endif
