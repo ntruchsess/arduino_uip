@@ -55,6 +55,9 @@ UIPClient::connect(IPAddress ip, uint16_t port)
   struct uip_conn* conn = uip_connect(&ipaddr, htons(port));
   if (conn)
     {
+#if UIP_CONNECT_TIMEOUT > 0
+      int32_t timeout = millis() + 1000 * UIP_CONNECT_TIMEOUT;
+#endif
       while((conn->tcpstateflags & UIP_TS_MASK) != UIP_CLOSED)
         {
           UIPEthernetClass::tick();
@@ -69,6 +72,13 @@ UIPClient::connect(IPAddress ip, uint16_t port)
 #endif
               return 1;
             }
+#if UIP_CONNECT_TIMEOUT > 0
+          if (((int32_t)(millis() - timeout)) > 0)
+            {
+              conn->tcpstateflags = UIP_CLOSED;
+              break;
+            }
+#endif
         }
     }
   return 0;
