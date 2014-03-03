@@ -35,7 +35,21 @@ extern "C"
 UIPClientExt::UIPClientExt() :
     conn(NULL)
 {
-  UIPClient();
+}
+
+UIPClientExt::UIPClientExt(struct uip_conn * c) :
+    conn(c)
+{
+  if (c)
+    {
+      UIPClient((uip_userdata_t *)c->appstate);
+    }
+}
+
+UIPClientExt::UIPClientExt(uip_userdata_t* d) :
+    conn(NULL),
+    UIPClient(d)
+{
 }
 
 int
@@ -63,7 +77,7 @@ UIPClientExt::stop()
 uint8_t
 UIPClientExt::connected()
 {
-  return this ? UIPClient::connected() : 0;
+  return *this ? UIPClient::connected() : 0;
 }
 
 UIPClientExt::operator bool()

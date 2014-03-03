@@ -100,6 +100,7 @@ private:
   static boolean network_send();
 
   friend class UIPServer;
+  friend class UIPServerExt;
 
   friend class UIPClient;
   friend class UIPClientExt;

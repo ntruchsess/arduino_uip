@@ -35,6 +35,13 @@ public:
 
 private:
   uint16_t _port;
+  friend class UIPServerExt;
 };
 
+class UIPServerExt : public UIPServer {
+
+public:
+  UIPServerExt(uint16_t);
+  UIPClientExt available();
+};
 #endif
