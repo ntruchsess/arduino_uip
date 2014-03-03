@@ -448,8 +448,8 @@ finish_newdata:
       if (u->state & UIP_CLIENT_CLOSE)
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
-              Serial.print(F("UIPClient state UIP_CLIENT_CLOSE"));
-              UIPClient::_dumpAllData();
+          Serial.println(F("UIPClient state UIP_CLIENT_CLOSE"));
+          UIPClient::_dumpAllData();
 #endif
           if (u->packets_out[0] == NOBLOCK)
             {
@@ -457,7 +457,7 @@ finish_newdata:
               uip_conn->appstate = NULL;
               uip_close();
 #ifdef UIPETHERNET_DEBUG_CLIENT
-              Serial.print(F("no blocks out -> free userdata"));
+              Serial.println(F("no blocks out -> free userdata"));
               UIPClient::_dumpAllData();
 #endif
             }
@@ -465,7 +465,7 @@ finish_newdata:
             {
               uip_stop();
 #ifdef UIPETHERNET_DEBUG_CLIENT
-              Serial.print(F("blocks outstanding transfer -> uip_stop()"));
+              Serial.println(F("blocks outstanding transfer -> uip_stop()"));
 #endif
             }
         }
