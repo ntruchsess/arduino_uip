@@ -586,6 +586,19 @@ Enc28J60Network::phyWrite(uint8_t address, uint16_t data)
   }
 }
 
+uint16_t
+Enc28J60Network::phyRead(uint8_t address)
+{
+  writeReg(MIREGADR,address);
+  writeReg(MICMD, MICMD_MIIRD);
+  // wait until the PHY read completes
+  while(readReg(MISTAT) & MISTAT_BUSY){
+    delayMicroseconds(15);
+  }  //and MIRDH
+  writeReg(MICMD, 0);
+  return (readReg(MIRDL) | readReg(MIRDH) << 8);
+}
+
 void
 Enc28J60Network::clkout(uint8_t clk)
 {
@@ -669,6 +682,12 @@ Enc28J60Network::powerOn()
   delay(50);
   writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_RXEN);
   delay(50);
+}
+
+bool
+Enc28J60Network::linkStatus()
+{
+  return (phyRead(PHSTAT2) & 0x0400) > 0;
 }
 
 Enc28J60Network Enc28J60;

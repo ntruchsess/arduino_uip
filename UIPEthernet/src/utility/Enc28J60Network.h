@@ -71,6 +71,7 @@ private:
   static void writeReg(uint8_t address, uint8_t data);
   static void writeRegPair(uint8_t address, uint16_t data);
   static void phyWrite(uint8_t address, uint16_t data);
+  static uint16_t phyRead(uint8_t address);
   static void clkout(uint8_t clk);
 
   friend void enc28J60_mempool_block_move_callback(memaddress,memaddress,memaddress);
@@ -80,6 +81,7 @@ public:
   uint8_t getrev(void);
   void powerOn();
   void powerOff();
+  bool linkStatus();
 
   static void init(uint8_t* macaddr);
   static memhandle receivePacket();
