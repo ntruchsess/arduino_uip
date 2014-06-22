@@ -310,7 +310,7 @@ void UIPEthernetClass::configure(IPAddress ip, IPAddress dns, IPAddress gateway,
   _dnsServerAddress = dns;
 }
 
-void UIPEthernetClass::configureSPI(uint8_t cs, uint8_t ss) {
+void UIPEthernetClass::setSSPIN(uint8_t cs, uint8_t ss) {
   Enc28J60Network::CONTROL_CS = cs;
   Enc28J60Network::SPI_SS = ss;
 }

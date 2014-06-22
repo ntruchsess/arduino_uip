@@ -76,7 +76,7 @@ public:
   // events have been processed. Renews dhcp-lease if required.
   int maintain();
 
-  static void configureSPI(uint8_t cs, uint8_t ss);
+  static void setSSPIN(uint8_t cs, uint8_t ss);
 
   IPAddress localIP();
   IPAddress subnetMask();
