@@ -76,6 +76,8 @@ public:
   // events have been processed. Renews dhcp-lease if required.
   int maintain();
 
+  static void configureSPI(uint8_t cs, uint8_t ss);
+
   IPAddress localIP();
   IPAddress subnetMask();
   IPAddress gatewayIP();
@@ -94,6 +96,7 @@ private:
 
   static void init(const uint8_t* mac);
   static void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
+
 
   static void tick();
 

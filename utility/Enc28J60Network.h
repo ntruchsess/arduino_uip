@@ -27,13 +27,16 @@
 
 #include "mempool.h"
 
-#define ENC28J60_CONTROL_CS     SS
+//#define ENC28J60_CONTROL_CS     10
 #define SPI_MOSI        MOSI
 #define SPI_MISO        MISO
 #define SPI_SCK         SCK
-#define SPI_SS          SS
+//#define SPI_SS          10
 
 #define UIP_RECEIVEBUFFERHANDLE 0xff
+
+
+
 
 //#define ENC28J60DEBUG
 
@@ -70,6 +73,9 @@ private:
   friend void enc28J60_mempool_block_move_callback(memaddress,memaddress,memaddress);
 
 public:
+  
+  static uint8_t CONTROL_CS;
+  static uint8_t SPI_SS;
 
   uint8_t getrev(void);
   void powerOn();
