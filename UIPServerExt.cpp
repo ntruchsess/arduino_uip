@@ -21,7 +21,9 @@
 extern "C" {
   #include "utility/uip-conf.h"
 }
+#ifdef UIPETHERNET_DEBUG_SERVER
 #include "HardwareSerial.h"
+#endif
 
 UIPServerExt::UIPServerExt(uint16_t p) :
     UIPServer(p)
@@ -37,12 +39,16 @@ UIPClientExt UIPServerExt::available()
         {
           if ((data->state & UIP_CLIENT_CONNECTED) && uip_conns[data->state & UIP_CLIENT_SOCKETS].lport ==_port)
             {
+#ifdef UIPETHERNET_DEBUG_SERVER
               Serial.println("connected and data");
+#endif
               return UIPClientExt(&uip_conns[data->state & UIP_CLIENT_SOCKETS]);
             }
           if ((data->state & UIP_CLIENT_REMOTECLOSED) && ((uip_userdata_closed_t *)data)->lport == _port)
             {
+#ifdef UIPETHERNET_DEBUG_SERVER
               Serial.println("connected and no data");
+#endif
               return UIPClientExt(data);
             }
         }

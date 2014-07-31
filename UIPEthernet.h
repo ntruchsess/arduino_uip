@@ -24,6 +24,7 @@
 //#define UIPETHERNET_DEBUG_CHKSUM
 //#define UIPETHERNET_DEBUG_UDP
 //#define UIPETHERNET_DEBUG_CLIENT
+//#define UIPETHERNET_DEBUG_SERVER
 
 #include "ethernet_comp.h"
 #include <Arduino.h>
