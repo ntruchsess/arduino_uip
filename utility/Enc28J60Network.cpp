@@ -155,7 +155,7 @@ Enc28J60Network::receivePacket()
   // The above does not work. See Rev. B4 Silicon Errata point 6.
   if (readReg(EPKTCNT) != 0)
     {
-      uint16_t readPtr = nextPacketPtr+6;
+      uint16_t readPtr = nextPacketPtr+6 > RXSTOP_INIT ? nextPacketPtr+6-RXSTOP_INIT+RXSTART_INIT : nextPacketPtr+6;
       // Set the read pointer to the start of the received packet
       writeRegPair(ERDPTL, nextPacketPtr);
       // read the next packet pointer
