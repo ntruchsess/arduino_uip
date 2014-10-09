@@ -45,7 +45,7 @@ uint8_t UIPEthernetClass::packetstate(0);
 IPAddress UIPEthernetClass::_dnsServerAddress;
 DhcpClass* UIPEthernetClass::_dhcp(NULL);
 
-struct uip_timer UIPEthernetClass::periodic_timer;
+unsigned long UIPEthernetClass::periodic_timer;
 
 // Because uIP isn't encapsulated within a class we have to use global
 // variables, so we can only have one TCP/IP stack per program.
@@ -220,22 +220,50 @@ UIPEthernetClass::tick()
         }
     }
 
-  if (uip_timer_expired(&periodic_timer))
+unsigned long now = millis();
+
+#if UIP_CLIENT_TIMER >= 0
+  boolean periodic = (long)( now - periodic_timer ) >= 0;
+  for (int i = 0; i < UIP_CONNS; i++)
     {
-      uip_timer_restart(&periodic_timer);
+#else
+  if ((long)( now - periodic_timer ) >= 0)
+    {
+      periodic_timer = now + UIP_PERIODIC_TIMER;
+
       for (int i = 0; i < UIP_CONNS; i++)
         {
-          uip_periodic(i);
-          // If the above function invocation resulted in data that
-          // should be sent out on the Enc28J60Network, the global variable
-          // uip_len is set to a value > 0.
-          if (uip_len > 0)
-            {
-              uip_arp_out();
-              network_send();
-            }
+#endif
+      uip_conn = &uip_conns[i];
+#if UIP_CLIENT_TIMER >= 0
+      if (periodic)
+        {
+#endif
+          uip_process(UIP_TIMER);
+#if UIP_CLIENT_TIMER >= 0
         }
-
+      else
+        {
+          if ((long)( now - ((uip_userdata_t*)uip_conn->appstate)->timer) >= 0)
+            uip_process(UIP_POLL_REQUEST);
+          else
+            continue;
+        }
+#endif
+        // If the above function invocation resulted in data that
+        // should be sent out on the Enc28J60Network, the global variable
+        // uip_len is set to a value > 0.
+      if (uip_len > 0)
+        {
+          uip_arp_out();
+          network_send();
+        }
+    }
+#if UIP_CLIENT_TIMER >= 0
+  if (periodic)
+    {
+      periodic_timer = now + UIP_PERIODIC_TIMER;
+#endif
 #if UIP_UDP
       for (int i = 0; i < UIP_UDP_CONNS; i++)
         {
@@ -286,7 +314,7 @@ sendandfree:
 }
 
 void UIPEthernetClass::init(const uint8_t* mac) {
-  uip_timer_set(&periodic_timer, CLOCK_SECOND / 4);
+  periodic_timer = millis() + UIP_PERIODIC_TIMER;
 
   Enc28J60Network::init((uint8_t*)mac);
   uip_seteth_addr(mac);
