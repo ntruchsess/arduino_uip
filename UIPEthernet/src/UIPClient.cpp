@@ -226,6 +226,9 @@ newpacket:
           goto newpacket;
         }
 ready:
+#if UIP_CLIENT_TIMER >= 0
+      u->timer = millis()+UIP_CLIENT_TIMER;
+#endif
       return size-remain;
     }
   return -1;
