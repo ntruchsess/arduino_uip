@@ -196,6 +196,20 @@ Enc28J60Network::receivePacket()
       // read the receive status (see datasheet page 43)
       rxstat = readOp(ENC28J60_READ_BUF_MEM, 0);
       //rxstat |= readOp(ENC28J60_READ_BUF_MEM, 0) << 8;
+#ifdef ENC28J60DEBUG
+      Serial.print("receivePacket [");
+      Serial.print(readPtr,HEX);
+      Serial.print("-");
+      Serial.print((readPtr+len) % (RXSTOP_INIT+1),HEX);
+      Serial.print("], next: ");
+      Serial.print(nextPacketPtr,HEX);
+      Serial.print(", stat: ");
+      Serial.print(rxstat,HEX);
+      Serial.print(", count: ");
+      Serial.print(readReg(EPKTCNT));
+      Serial.print(" -> ");
+      Serial.println((rxstat & 0x80)!=0 ? "OK" : "failed");
+#endif
       // decrement the packet counter indicate we are done with this packet
       writeOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
       // check CRC and symbol errors (see datasheet page 44, table 7-3):
@@ -229,6 +243,8 @@ Enc28J60Network::blockSize(memhandle handle)
 void
 Enc28J60Network::sendPacket(memhandle handle)
 {
+  if (handle == NOBLOCK)
+    return;
   memblock *packet = &blocks[handle];
   uint16_t start = packet->begin-1;
   uint16_t end = start + packet->size;
@@ -243,10 +259,10 @@ Enc28J60Network::sendPacket(memhandle handle)
   Serial.print("sendPacket(");
   Serial.print(handle);
   Serial.print(") [");
-  Serial.print(start);
+  Serial.print(start,HEX);
   Serial.print("-");
-  Serial.print(end);
-  Serial.println("]:");
+  Serial.print(end,HEX);
+  Serial.print("]: ");
   for (uint16_t i=start; i<=end; i++)
     {
       Serial.print(readByte(i),HEX);
