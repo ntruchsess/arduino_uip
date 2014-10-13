@@ -441,8 +441,10 @@ finish_newdata:
                       Enc28J60Network::copyPacket(UIPEthernetClass::uip_packet,UIPEthernetClass::uip_hdrlen,u->packets_out[0],0,uip_len);
                       UIPEthernetClass::packetstate |= UIPETHERNET_SENDPACKET;
                       uip_send(uip_appdata,uip_len);
+                      return;
                     }
-                  return;
+                  else
+                    goto nodata;
                 }
             }
         }
