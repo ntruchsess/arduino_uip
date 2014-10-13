@@ -473,7 +473,6 @@ finish_newdata:
         }
     }
 nodata:
-  UIPEthernetClass::uip_packet = NOBLOCK;
   uip_len=0;
 }
 
