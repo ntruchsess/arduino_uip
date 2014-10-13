@@ -243,8 +243,6 @@ Enc28J60Network::blockSize(memhandle handle)
 void
 Enc28J60Network::sendPacket(memhandle handle)
 {
-  if (handle == NOBLOCK)
-    return;
   memblock *packet = &blocks[handle];
   uint16_t start = packet->begin-1;
   uint16_t end = start + packet->size;
