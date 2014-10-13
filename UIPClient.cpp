@@ -360,17 +360,16 @@ uipclient_appcall(void)
 #endif
           if (uip_len && !(u->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_REMOTECLOSED)))
             {
-              memhandle newPacket = Enc28J60Network::allocBlock(uip_len);
-              if (newPacket != NOBLOCK)
+              for (uint8_t i=0; i < UIP_SOCKET_NUMPACKETS; i++)
                 {
-                  for (uint8_t i=0; i < UIP_SOCKET_NUMPACKETS; i++)
+                  if (u->packets_in[i] == NOBLOCK)
                     {
-                      if (u->packets_in[i] == NOBLOCK)
+                      u->packets_in[i] = Enc28J60Network::allocBlock(uip_len);
+                      if (u->packets_in[i] != NOBLOCK)
                         {
+                          Enc28J60Network::copyPacket(u->packets_in[i],0,UIPEthernetClass::in_packet,((uint8_t*)uip_appdata)-uip_buf,uip_len);
                           if (i == UIP_SOCKET_NUMPACKETS-1)
                             uip_stop();
-                          Enc28J60Network::copyPacket(newPacket,0,UIPEthernetClass::in_packet,((uint8_t*)uip_appdata)-uip_buf,uip_len);
-                          u->packets_in[i] = newPacket;
                           goto finish_newdata;
                         }
                     }
