@@ -329,6 +329,7 @@ UIPClient::flush()
 void
 uipclient_appcall(void)
 {
+  uint16_t send_len = 0;
   uip_userdata_t *u = (uip_userdata_t*)uip_conn->appstate;
   if (!u && uip_connected())
     {
@@ -406,7 +407,7 @@ finish_newdata:
           UIPClient::_dumpAllData();
 #endif
           uip_conn->appstate = NULL;
-          goto nodata;
+          goto finish;
         }
       if (uip_acked())
         {
@@ -424,28 +425,25 @@ finish_newdata:
             {
               if (u->packets_out[1] == NOBLOCK)
                 {
-                  uip_len = u->out_pos;
-                  if (uip_len > 0)
+                  send_len = u->out_pos;
+                  if (send_len > 0)
                     {
-                      Enc28J60Network::resizeBlock(u->packets_out[0],0,uip_len);
+                      Enc28J60Network::resizeBlock(u->packets_out[0],0,send_len);
                     }
                 }
               else
-                uip_len = Enc28J60Network::blockSize(u->packets_out[0]);
-              if (uip_len > 0)
+                send_len = Enc28J60Network::blockSize(u->packets_out[0]);
+              if (send_len > 0)
                 {
                   UIPEthernetClass::uip_hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
-                  UIPEthernetClass::uip_packet = Enc28J60Network::allocBlock(UIPEthernetClass::uip_hdrlen+uip_len);
+                  UIPEthernetClass::uip_packet = Enc28J60Network::allocBlock(UIPEthernetClass::uip_hdrlen+send_len);
                   if (UIPEthernetClass::uip_packet != NOBLOCK)
                     {
-                      Enc28J60Network::copyPacket(UIPEthernetClass::uip_packet,UIPEthernetClass::uip_hdrlen,u->packets_out[0],0,uip_len);
+                      Enc28J60Network::copyPacket(UIPEthernetClass::uip_packet,UIPEthernetClass::uip_hdrlen,u->packets_out[0],0,send_len);
                       UIPEthernetClass::packetstate |= UIPETHERNET_SENDPACKET;
-                      uip_send(uip_appdata,uip_len);
-                      return;
                     }
-                  else
-                    goto nodata;
                 }
+              goto finish;
             }
         }
       // don't close connection unless all outgoing packets are sent
@@ -474,8 +472,9 @@ finish_newdata:
             }
         }
     }
-nodata:
-  uip_len=0;
+  finish:
+  uip_send(uip_appdata,send_len);
+  uip_len = send_len;
 }
 
 uip_userdata_t *
