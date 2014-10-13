@@ -291,6 +291,7 @@ boolean UIPEthernetClass::network_send()
       Serial.println(uip_hdrlen);
 #endif
       Enc28J60Network::writePacket(uip_packet,0,uip_buf,uip_hdrlen);
+      packetstate &= ~ UIPETHERNET_SENDPACKET;
       goto sendandfree;
     }
   uip_packet = Enc28J60Network::allocBlock(uip_len);
