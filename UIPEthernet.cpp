@@ -183,7 +183,7 @@ UIPEthernetClass::tick()
           Enc28J60Network::readPacket(in_packet,0,(uint8_t*)uip_buf,UIP_BUFSIZE);
           if (ETH_HDR ->type == HTONS(UIP_ETHTYPE_IP))
             {
-              uip_packet = in_packet;
+              uip_packet = in_packet; //required for upper_layer_checksum of in_packet!
 #ifdef UIPETHERNET_DEBUG
               Serial.print(F("readPacket type IP, uip_len: "));
               Serial.println(uip_len);
@@ -220,7 +220,7 @@ UIPEthernetClass::tick()
         }
     }
 
-unsigned long now = millis();
+  unsigned long now = millis();
 
 #if UIP_CLIENT_TIMER >= 0
   boolean periodic = (long)( now - periodic_timer ) >= 0;
@@ -291,6 +291,7 @@ boolean UIPEthernetClass::network_send()
       Serial.println(uip_hdrlen);
 #endif
       Enc28J60Network::writePacket(uip_packet,0,uip_buf,uip_hdrlen);
+      packetstate &= ~ UIPETHERNET_SENDPACKET;
       goto sendandfree;
     }
   uip_packet = Enc28J60Network::allocBlock(uip_len);
