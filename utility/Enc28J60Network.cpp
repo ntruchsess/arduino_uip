@@ -212,39 +212,21 @@ Enc28J60Network::blockSize(memhandle handle)
   return handle == NOBLOCK ? 0 : handle == UIP_RECEIVEBUFFERHANDLE ? receivePkt.size : blocks[handle].size;
 }
 
-void
+bool
 Enc28J60Network::sendPacket(memhandle handle)
 {
   memblock *packet = &blocks[handle];
-  uint16_t start = packet->begin-1;
-  uint16_t end = start + packet->size;
+  uint16_t start = packet->begin;
+  uint16_t end = start + packet->size - (UIP_SENDBUFFER_OFFSET + UIP_SENDBUFFER_PADDING);
 
-  // backup data at control-byte position
-  uint8_t data = readByte(start);
-  // write control-byte (if not 0 anyway)
-  if (data)
-    writeByte(start, 0);
-
-#ifdef ENC28J60DEBUG
-  Serial.print("sendPacket(");
-  Serial.print(handle);
-  Serial.print(") [");
-  Serial.print(start,HEX);
-  Serial.print("-");
-  Serial.print(end,HEX);
-  Serial.print("]: ");
-  for (uint16_t i=start; i<=end; i++)
-    {
-      Serial.print(readByte(i),HEX);
-      Serial.print(" ");
-    }
-  Serial.println();
-#endif
+  // write control-byte
+  writeByte(start, 0);
 
   // TX start
   writeRegPair(ETXSTL, start);
   // Set the TXND pointer to correspond to the packet size given
   writeRegPair(ETXNDL, end);
+
   // send the contents of the transmit buffer onto the network
   writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
   // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
@@ -253,9 +235,22 @@ Enc28J60Network::sendPacket(memhandle handle)
       writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
     }
 
-  //restore data on control-byte position
-  if (data)
-    writeByte(start, data);
+#ifdef ENC28J60DEBUG
+  Serial.print("sendPacket(");
+  Serial.print(handle);
+  Serial.print(") [");
+  Serial.print(start,HEX);
+  Serial.print("-");
+  Serial.print(start+packet->size,HEX);
+  Serial.print("]: ");
+  for (uint16_t i=start; i<=end; i++)
+    {
+      Serial.print(readByte(i),HEX);
+      Serial.print(" ");
+    }
+  Serial.println();
+#endif
+  return true;
 }
 
 uint16_t
