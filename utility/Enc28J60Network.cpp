@@ -227,30 +227,43 @@ Enc28J60Network::sendPacket(memhandle handle)
   // Set the TXND pointer to correspond to the packet size given
   writeRegPair(ETXNDL, end);
 
+  uint8_t eir;
+
+  // Reset the transmit logic problem. See Rev. B7 Silicon Errata issues 12 and 13
+  writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRST);
+  writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRST);
+  writeOp(ENC28J60_BIT_FIELD_CLR, EIR, EIR_TXERIF |  EIR_TXIF);
   // send the contents of the transmit buffer onto the network
   writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
-  // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
-  if( (readReg(EIR) & EIR_TXERIF) )
-    {
-      writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
-    }
+  // wait for transmission to complete or fail
+  while (((eir = readReg(EIR)) & (EIR_TXIF | EIR_TXERIF)) == 0);
+  writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
 
 #ifdef ENC28J60DEBUG
-  Serial.print("sendPacket(");
+  Serial.print(F("sendPacket("));
   Serial.print(handle);
-  Serial.print(") [");
+  Serial.print(F(") ["));
   Serial.print(start,HEX);
-  Serial.print("-");
+  Serial.print(F("-"));
   Serial.print(start+packet->size,HEX);
-  Serial.print("]: ");
+  Serial.print(F("]: "));
   for (uint16_t i=start; i<=end; i++)
     {
       Serial.print(readByte(i),HEX);
       Serial.print(" ");
     }
   Serial.println();
+  for (uint16_t i=end+1; i<= end+UIP_SENDBUFFER_PADDING; i++)
+    {
+      Serial.print(readByte(i),BIN);
+      Serial.print(" ");
+    }
+  Serial.println();
+  Serial.print(F("eir: "));
+  Serial.print(eir,BIN);
+  Serial.println();
 #endif
-  return true;
+  return (eir & EIR_TXERIF) == 0;
 }
 
 uint16_t
