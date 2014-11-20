@@ -87,10 +87,11 @@ void Enc28J60Network::init(uint8_t* macaddr)
   nextPacketPtr = RXSTART_INIT;
   // Rx start
   writeRegPair(ERXSTL, RXSTART_INIT);
-  // set receive pointer address
-  writeRegPair(ERXRDPTL, RXSTART_INIT);
   // RX end
   writeRegPair(ERXNDL, RXSTOP_INIT);
+  // set receive pointer address
+  //writeRegPair(ERXRDPTL, RXSTART_INIT); // TODO: First packet received to even address? Errata 14. /Frol
+  setERXRDPT();
   // TX start
   //writeRegPair(ETXSTL, TXSTART_INIT);
   // TX end
