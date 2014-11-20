@@ -87,10 +87,11 @@ void Enc28J60Network::init(uint8_t* macaddr)
   nextPacketPtr = RXSTART_INIT;
   // Rx start
   writeRegPair(ERXSTL, RXSTART_INIT);
-  // set receive pointer address
-  writeRegPair(ERXRDPTL, RXSTART_INIT);
   // RX end
   writeRegPair(ERXNDL, RXSTOP_INIT);
+  // set receive pointer address
+  //writeRegPair(ERXRDPTL, RXSTART_INIT); // TODO: First packet received to even address? Errata 14. /Frol
+  setERXRDPT();
   // TX start
   //writeRegPair(ETXSTL, TXSTART_INIT);
   // TX end
@@ -236,7 +237,17 @@ Enc28J60Network::sendPacket(memhandle handle)
   // send the contents of the transmit buffer onto the network
   writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
   // wait for transmission to complete or fail
-  while (((eir = readReg(EIR)) & (EIR_TXIF | EIR_TXERIF)) == 0);
+  {
+    unsigned long timer = millis();
+    while (((eir = readReg(EIR)) & (EIR_TXIF | EIR_TXERIF)) == 0) {
+      if (millis() - timer > 1000) {
+	/* Transmit hardware probably hung, try again later. */
+	/* Shouldn't happen according to errata 12 and 13. */
+	writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
+	return false;
+      }
+    }
+  }
   writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
 
 #ifdef ENC28J60DEBUG
