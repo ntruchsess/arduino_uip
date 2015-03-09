@@ -235,6 +235,19 @@ ready:
 }
 
 int
+UIPClient::waitAvailable(uint32_t timeout){
+
+	uint32_t start = millis();
+    while(available() < 1){	
+		if(millis()-start > timeout){
+		  return 0; 
+		}
+		Ethernet.tick();
+	}
+	return available();
+}
+
+int
 UIPClient::available()
 {
   Ethernet.tick();
