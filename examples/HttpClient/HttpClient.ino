@@ -52,22 +52,21 @@ void loop() {
       // replace hostname with name of machine running tcpserver.pl
 //      if (client.connect("server.local",5000))
       if (client.connect("www.google.com", 80))
+//      if (client.connect("www.fiikus.net", 80))
         {
           Serial.println("Client connected");
           client.write("GET / HTTP/1.1\n");  
+//          client.write("GET /asciiart/pizza.txt HTTP/1.1\n");
           client.write("Host: www.google.ca\n");
+//          client.write("Host: fiikus.net\n");
           client.write("Connection: close\n");
           client.println();
           
-          int size;
-          while((size = client.waitAvailable(3000)) > 0)
+          while((client.waitAvailable(2000)) > 0)
             {
-              uint8_t* msg = (uint8_t*)malloc(size);
-              size = client.read(msg,size);
-              Serial.write(msg,size);
+              Serial.write(client.read());
               if(counter > 100){ Serial.println(" "); counter=0;}
-               counter+=size;
-              free(msg);
+               counter++;
             }
 close:
           //disconnect client
