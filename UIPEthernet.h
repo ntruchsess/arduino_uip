@@ -80,6 +80,8 @@ public:
   IPAddress subnetMask();
   IPAddress gatewayIP();
   IPAddress dnsServerIP();
+  
+  void update();
 
 private:
   static memhandle in_packet;

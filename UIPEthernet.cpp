@@ -54,6 +54,12 @@ UIPEthernetClass::UIPEthernetClass()
 {
 }
 
+void
+UIPEthernetClass::update()
+{
+  Ethernet.tick();
+}
+
 #if UIP_UDP
 int
 UIPEthernetClass::begin(const uint8_t* mac)
