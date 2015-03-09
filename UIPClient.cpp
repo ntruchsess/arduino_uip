@@ -237,6 +237,7 @@ ready:
 int
 UIPClient::available()
 {
+  Ethernet.tick();
   if (*this)
     return _available(data);
   return 0;
