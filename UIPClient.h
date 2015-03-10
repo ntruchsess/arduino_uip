@@ -58,6 +58,9 @@ typedef struct {
 #if UIP_CLIENT_TIMER >= 0
   unsigned long timer;
 #endif
+  bool windowOpened;
+  uint32_t restartTime;
+  uint32_t restartInterval;
 } uip_userdata_t;
 
 class UIPClient : public Client {
@@ -76,6 +79,7 @@ public:
   size_t write(uint8_t);
   size_t write(const uint8_t *buf, size_t size);
   int available();
+  int waitAvailable(uint32_t timeout=500);
   int read();
   int peek();
   void flush();
