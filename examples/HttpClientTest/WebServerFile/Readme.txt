@@ -1,0 +1,1 @@
+Place this file in the root directory of a web server for testing

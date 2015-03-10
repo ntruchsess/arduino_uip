@@ -251,7 +251,7 @@
 #define TXSTOP_INIT      0x1FFF
 //
 // max frame length which the conroller will accept:
-#define        MAX_FRAMELEN        1500        // (note: maximum ethernet frame length would be 1518)
+#define        MAX_FRAMELEN        UIP_CONF_TCP_MSS + UIP_LLH_LEN + UIP_TCPIP_HLEN + 4//1500        // (note: maximum ethernet frame length would be 1518)
 //#define MAX_FRAMELEN     600
 
 #endif

@@ -385,21 +385,20 @@ uipclient_appcall(void)
                           Enc28J60Network::copyPacket(u->packets_in[i],0,UIPEthernetClass::in_packet,((uint8_t*)uip_appdata)-uip_buf,uip_len);
                           if (i == UIP_SOCKET_NUMPACKETS-1)
                             uip_stop();
+							u->windowOpened = false;
+							u->state &= ~UIP_CLIENT_RESTART;
                           goto finish_newdata;
                         }
                     }
                 }
               UIPEthernetClass::packetstate &= ~UIPETHERNET_FREEPACKET;
+			  u->windowOpened = false;
+			  u->state &= ~UIP_CLIENT_RESTART;
               uip_stop();
             }
         }
 finish_newdata:
-      if (u->state & UIP_CLIENT_RESTART)
-        {
-          u->state &= ~UIP_CLIENT_RESTART;
-          uip_restart();
-        }
-      // If the connection has been closed, save received but unread data.
+// If the connection has been closed, save received but unread data.
       if (uip_closed() || uip_timedout())
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
@@ -428,7 +427,9 @@ finish_newdata:
 #ifdef UIPETHERNET_DEBUG_CLIENT
           Serial.println(F("UIPClient uip_acked"));
 #endif
-          UIPClient::_eatBlock(&u->packets_out[0]);
+          u->state &= ~UIP_CLIENT_RESTART;
+		  u->windowOpened = false;
+		  UIPClient::_eatBlock(&u->packets_out[0]);
         }
       if (uip_poll() || uip_rexmit())
         {
@@ -458,7 +459,21 @@ finish_newdata:
                     }
                 }
               goto finish;
-            }
+            }else
+			if (u->state & UIP_CLIENT_RESTART && u->windowOpened == false) {
+			  u->windowOpened = true;
+			  //u->state &= ~UIP_CLIENT_RESTART;
+			  uip_restart();
+			  u->restartTime = millis();
+			  //Serial.println("Restart1");
+			  goto finish;
+			}else
+			if(u->state & UIP_CLIENT_RESTART && millis() - u->restartTime > 500){
+			  uip_restart();
+			  u->restartTime = millis();
+			  //u->state &= ~UIP_CLIENT_RESTART;
+			  Serial.println("RestartExtra");
+			}
         }
       // don't close connection unless all outgoing packets are sent
       if (u->state & UIP_CLIENT_CLOSE)
