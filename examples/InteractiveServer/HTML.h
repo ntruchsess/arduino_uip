@@ -81,9 +81,9 @@ static const char main_html_p2[] PROGMEM =
 */
 void sendPage(EthernetClient& _client, const char* _pointer, size_t size ){
   
-  size_t bufSize = UIP_CONF_BUFFER_SIZE;
+  size_t bufSize = UIP_BUFSIZE;
   
-  char buffer[UIP_CONF_BUFFER_SIZE+1]; // 91 bytes by default
+  char buffer[bufSize+1]; // 91 bytes by default
    
   // Create a pointer for iterating through the array
   const char *i;
@@ -162,41 +162,29 @@ void stats_page(EthernetClient& _client) {
   char buffer[UIP_CONF_BUFFER_SIZE];
   
   
-  size_t size = sprintf_P(buffer, PSTR("HTTP/1.1 200 OK\nContent-Type: text/html\n"));
-  _client.write( buffer, size );
-  delay(100);
-  size = sprintf_P(buffer, PSTR("Connection: close\n\n<!DOCTYPE HTML>\n<html>\n"));
-  _client.write( buffer, size );
-   delay(100);
-  size = sprintf_P(buffer, PSTR("<head><style>body{background-color:linen;}\n"));
-  _client.write( buffer, size );
-   delay(100);
-  size = sprintf_P(buffer, PSTR("td{border: 1px solid black;}</style></head>\n"));
-  _client.write( buffer, size );
-   delay(100);
-  size = sprintf_P(buffer, PSTR("<body><table><tr><td> Uptime</td><td>\n"));
-  _client.write( buffer, size );
-   delay(100);
-  size = sprintf_P(buffer, PSTR("%u days, %lu hours %lu minutes %lu"),days,hours,minutes,seconds);
-  _client.write( buffer, size );
-   delay(100);
-  size = sprintf_P(buffer, PSTR("seconds</td></tr><tr><td>UIP Buffer Size"));
-  _client.write( buffer, size );
-   delay(100);
-  size = sprintf_P(buffer, PSTR("</td><td>%d bytes</td></tr><tr><td>User "),UIP_BUFSIZE);
-  _client.write( buffer, size);
-   delay(100);
-  size = sprintf_P(buffer, PSTR("Output<br>Buffer Size</td><td>%d bytes"),UIP_CONF_BUFFER_SIZE);
-  _client.write( buffer, size );
-   delay(100);
-  size = sprintf_P(buffer, PSTR("</td></tr></table><br><br>"));
-  _client.write( buffer, size );
-   delay(100);
-  size = sprintf_P(buffer, PSTR("<a href='/'>Home</a></body></html>\n\n"));
-  _client.write( buffer, size );
-   delay(100);
-  //size = sprintf_P(buffer, PSTR("                                                                                                 "));
-  //_client.write( buffer, size );
+  sprintf_P(buffer, PSTR("HTTP/1.1 200 OK\nContent-Type: text/html\n"));
+  _client.write(buffer);
+  sprintf_P(buffer, PSTR("Connection: close\n\n<!DOCTYPE HTML>\n<html>\n"));
+  _client.write(buffer);
+  sprintf_P(buffer, PSTR("<head><style>body{background-color:linen;}\n"));
+  _client.write(buffer);
+  sprintf_P(buffer, PSTR("td{border: 1px solid black;}</style></head>\n"));
+  _client.write(buffer);
+  sprintf_P(buffer, PSTR("<body><table><tr><td> Uptime</td><td>\n"));
+  _client.write(buffer);
+  sprintf_P(buffer, PSTR("%u days, %lu hours %lu minutes %lu"),days,hours,minutes,seconds);
+  _client.write(buffer);
+  sprintf_P(buffer, PSTR("seconds</td></tr><tr><td>UIP Buffer Size"));
+  _client.write(buffer);
+  sprintf_P(buffer, PSTR("</td><td>%d bytes</td></tr><tr><td>User "),UIP_BUFSIZE);
+  _client.write(buffer);
+  sprintf_P(buffer, PSTR("Output<br>Buffer Size</td><td>%d bytes"),UIP_CONF_BUFFER_SIZE);
+  _client.write(buffer);
+  sprintf_P(buffer, PSTR("</td></tr></table><br><br>"));
+  _client.write(buffer);
+  sprintf_P(buffer, PSTR("<a href='/'>Home</a></body></html>\n\n"));
+  _client.write(buffer);
+
 }
 
 /***************************************************************/
@@ -215,4 +203,3 @@ void stats_page(EthernetClient& _client) {
     "</body>"
     "</html>";
     
-

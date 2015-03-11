@@ -61,6 +61,7 @@ typedef struct {
   bool windowOpened;
   uint32_t restartTime;
   uint32_t restartInterval;
+  uint16_t dataCnt;
 } uip_userdata_t;
 
 class UIPClient : public Client {
