@@ -19,11 +19,13 @@
 EthernetServer server = EthernetServer(80);
 
 /**********************************************************/
+#define LED_PIN A3 //Analog pin A3
 
 void setup() {
 
+  pinMode(LED_PIN, OUTPUT);
+  
   Serial.begin(115200);
-
   Serial.println("start");
 
   uint8_t mac[6] = {0x00,0x01,0x02,0x03,0x04,0x05};
@@ -55,10 +57,12 @@ void loop() {
         if (strcmp(buf, "ON") == 0) { // If the user requested http://ip-of-node:1000/ON
           led_state = 1;
           pageReq = 1;
+          digitalWrite(LED_PIN, led_state);
           
         }else if (strcmp(buf, "OF") == 0) { // If the user requested http://ip-of-node:1000/OF
           led_state = 0;
           pageReq = 1;
+          digitalWrite(LED_PIN, led_state);
           
         }else if (strcmp(buf, "ST") == 0) { // If the user requested http://ip-of-node:1000/OF
           pageReq = 2;
@@ -71,7 +75,7 @@ void loop() {
         }
       }
       // Empty the rest of the data from the client
-      while (client.waitAvailable()) {
+      while (client.waitAvailable(100)) {
         Serial.print((char)client.read());
       }
     }
