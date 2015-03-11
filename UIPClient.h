@@ -53,7 +53,7 @@ typedef struct {
 typedef struct {
   uint8_t state;
   memhandle packets_in[UIP_SOCKET_NUMPACKETS];
-  memhandle packets_out[UIP_SOCKET_NUMPACKETS];
+  memhandle packets_out[UIP_SOCKET_NUMPACKETS+1];
   memaddress out_pos;
 #if UIP_CLIENT_TIMER >= 0
   unsigned long timer;
