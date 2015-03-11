@@ -391,7 +391,7 @@ if (uip_newdata())
 		  }
           if (u->packets_in[0] != NOBLOCK){
             Enc28J60Network::copyPacket(u->packets_in[0],u->dataCnt,UIPEthernetClass::in_packet,((uint8_t*)uip_appdata)-uip_buf,uip_len);
-            if(u->dataCnt > UIP_TCP_MSS/2){
+            if(u->dataCnt >= UIP_TCP_MSS){
               uip_stop();
 			  u->windowOpened = false;
 			  u->state &= ~UIP_CLIENT_RESTART;
