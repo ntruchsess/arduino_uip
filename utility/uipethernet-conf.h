@@ -20,7 +20,7 @@
 #define UIP_CONNECT_TIMEOUT      -1
 
 /* periodic timer for uip (in ms) */
-#define UIP_PERIODIC_TIMER       250
+#define UIP_PERIODIC_TIMER       100
 
 /* timer to poll client for data after last write (in ms)
  * set to -1 to disable fast polling and rely on periodic only (saves 100 bytes flash) */

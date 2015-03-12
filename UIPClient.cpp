@@ -177,7 +177,6 @@ UIPClient::_write(uip_userdata_t* u, const uint8_t *buf, size_t size)
   UIPEthernetClass::tick();
   if (u && !(u->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_REMOTECLOSED)))
     {
-      u->out_pos = 0;
       uint8_t p = _currentBlock(&u->packets_out[0]);
       if (u->packets_out[p] == NOBLOCK)
         {
@@ -212,12 +211,6 @@ newpacket:
       remain -= written;
       u->out_pos+=written;
 
-waits:
-	 if( u->packets_out[p] != NOBLOCK){
-		Ethernet.tick();
-		goto waits;
-	 }
-	 
       if (remain > 0)
         {
           if (p == UIP_SOCKET_NUMPACKETS-1)
