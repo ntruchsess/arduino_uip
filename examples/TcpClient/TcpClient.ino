@@ -51,7 +51,7 @@ void loop() {
       if (client.connect(IPAddress(192,168,0,1),5000))
         {
           Serial.println("Client connected");
-          client.println("DATA from Client");
+          Serial.println("DATA from Client");
           while(client.available()==0)
             {
               if (next - millis() < 0)
