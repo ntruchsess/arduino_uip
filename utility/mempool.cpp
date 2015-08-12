@@ -19,10 +19,11 @@
 
 #include "mempool.h"
 #include <string.h>
-
+#include <HardwareSerial.h>
 #define POOLOFFSET 1
 
 struct memblock MemoryPool::blocks[MEMPOOL_NUM_MEMBLOCKS+1];
+bool blockStatus[20];
 
 void
 MemoryPool::init()
@@ -110,6 +111,9 @@ MemoryPool::allocBlock(memaddress size)
           block->size = size;
           block->nextblock = best->nextblock;
           best->nextblock = cur;
+          //          Serial.print("Allocated Block ");
+          //Serial.println(cur);
+          blockStatus[cur] = 1;
           return cur;
         }
     }
@@ -120,6 +124,15 @@ MemoryPool::allocBlock(memaddress size)
 void
 MemoryPool::freeBlock(memhandle handle)
 {
+
+//Serial.print("FHandle: ");
+  //Serial.println(handle);
+  blockStatus[handle] = 0;
+  
+  //for(int i=0; i<MEMPOOL_NUM_MEMBLOCKS; i++){
+  //  Serial.print(blockStatus[i]);
+ // }
+ // Serial.println("");
   if (handle == NOBLOCK)
     return;
   memblock *b = &blocks[POOLSTART];

@@ -54,6 +54,12 @@ UIPEthernetClass::UIPEthernetClass()
 {
 }
 
+void
+UIPEthernetClass::update()
+{
+  Ethernet.tick();
+}
+
 #if UIP_UDP
 int
 UIPEthernetClass::begin(const uint8_t* mac)
@@ -301,8 +307,9 @@ boolean UIPEthernetClass::network_send()
       return false;
     }
   uip_packet = Enc28J60Network::allocBlock(uip_len + UIP_SENDBUFFER_OFFSET + UIP_SENDBUFFER_PADDING);
+  //Serial.print("Alloc User TX");
   if (uip_packet != NOBLOCK)
-    {
+    { //Serial.println(" OK");
 #ifdef UIPETHERNET_DEBUG
       Serial.print(F("Enc28J60Network_send uip_buf (uip_len): "));
       Serial.print(uip_len);
@@ -311,7 +318,9 @@ boolean UIPEthernetClass::network_send()
 #endif
       Enc28J60Network::writePacket(uip_packet,UIP_SENDBUFFER_OFFSET,uip_buf,uip_len);
       bool register success = Enc28J60Network::sendPacket(uip_packet);
+      //Serial.print("Free System Packet ");
       Enc28J60Network::freeBlock(uip_packet);
+      
       uip_packet = NOBLOCK;
       return success;
     }

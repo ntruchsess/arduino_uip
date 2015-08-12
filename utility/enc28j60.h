@@ -244,14 +244,15 @@
 // start with recbuf at 0/
 #define RXSTART_INIT     0x0
 // receive buffer end. make sure this is an odd value ( See Rev. B1,B4,B5,B7 Silicon Errata 'Memory (Ethernet Buffer)')
-#define RXSTOP_INIT      (0x1FFF-0x1800)
+//#define RXSTOP_INIT      (0x1FFF-0x1800)
+#define RXSTOP_INIT      2001
 // start TX buffer RXSTOP_INIT+1
 #define TXSTART_INIT     (RXSTOP_INIT+1)
 // stp TX buffer at end of mem
 #define TXSTOP_INIT      0x1FFF
 //
 // max frame length which the conroller will accept:
-#define        MAX_FRAMELEN        1500        // (note: maximum ethernet frame length would be 1518)
+#define        MAX_FRAMELEN        UIP_CONF_TCP_MSS + UIP_LLH_LEN + UIP_TCPIP_HLEN + 4//1500        // (note: maximum ethernet frame length would be 1518)
 //#define MAX_FRAMELEN     600
 
 #endif

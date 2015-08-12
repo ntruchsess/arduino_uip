@@ -46,18 +46,22 @@ typedef uint8_t uip_socket_ptr;
 
 typedef struct {
   uint8_t state;
-  memhandle packets_in[UIP_SOCKET_NUMPACKETS];
+  memhandle packets_in[UIP_SOCKET_NUMPACKETS+1];
   uint16_t lport;        /**< The local TCP port, in network byte order. */
 } uip_userdata_closed_t;
 
 typedef struct {
   uint8_t state;
   memhandle packets_in[UIP_SOCKET_NUMPACKETS];
-  memhandle packets_out[UIP_SOCKET_NUMPACKETS];
+  memhandle packets_out[UIP_SOCKET_NUMPACKETS+1];
   memaddress out_pos;
 #if UIP_CLIENT_TIMER >= 0
   unsigned long timer;
 #endif
+  bool windowOpened;
+  uint32_t restartTime;
+  uint32_t restartInterval;
+  uint16_t dataCnt;
 } uip_userdata_t;
 
 class UIPClient : public Client {
@@ -76,6 +80,7 @@ public:
   size_t write(uint8_t);
   size_t write(const uint8_t *buf, size_t size);
   int available();
+  int waitAvailable(uint32_t timeout=500);
   int read();
   int peek();
   void flush();

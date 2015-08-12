@@ -104,7 +104,7 @@ typedef unsigned short uip_stats_t;
  * UIP_BUFSIZE - UIP_LLH_LEN - UIP_TCPIP_HLEN.
  */
 
-#define UIP_CONF_TCP_MSS 512
+#define UIP_CONF_TCP_MSS 511
 
 /**
  * The size of the advertised receiver's window.
@@ -115,7 +115,7 @@ typedef unsigned short uip_stats_t;
  *
  * \hideinitializer
  */
-#define UIP_CONF_RECEIVE_WINDOW 512
+#define UIP_CONF_RECEIVE_WINDOW 511
 
 /**
  * CPU byte order.

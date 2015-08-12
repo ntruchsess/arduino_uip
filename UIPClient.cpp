@@ -171,7 +171,7 @@ UIPClient::_write(uip_userdata_t* u, const uint8_t *buf, size_t size)
   int remain = size;
   uint16_t written;
 #if UIP_ATTEMPTS_ON_WRITE > 0
-  uint16_t attempts = UIP_ATTEMPTS_ON_WRITE;
+  int attempts = UIP_ATTEMPTS_ON_WRITE;
 #endif
   repeat:
   UIPEthernetClass::tick();
@@ -185,10 +185,13 @@ newpacket:
           if (u->packets_out[p] == NOBLOCK)
             {
 #if UIP_ATTEMPTS_ON_WRITE > 0
-              if ((--attempts)>0)
+              if ((--attempts)>0){
 #endif
 #if UIP_ATTEMPTS_ON_WRITE != 0
                 goto repeat;
+#endif
+#if UIP_ATTEMPTS_ON_WRITE > 0
+              }
 #endif
               goto ready;
             }
@@ -210,15 +213,19 @@ newpacket:
       written = Enc28J60Network::writePacket(u->packets_out[p],u->out_pos,(uint8_t*)buf+size-remain,remain);
       remain -= written;
       u->out_pos+=written;
+
       if (remain > 0)
         {
           if (p == UIP_SOCKET_NUMPACKETS-1)
             {
 #if UIP_ATTEMPTS_ON_WRITE > 0
-              if ((--attempts)>0)
+              if ((--attempts)>0){
 #endif
 #if UIP_ATTEMPTS_ON_WRITE != 0
                 goto repeat;
+#endif
+#if UIP_ATTEMPTS_ON_WRITE > 0
+              }
 #endif
               goto ready;
             }
@@ -235,8 +242,22 @@ ready:
 }
 
 int
+UIPClient::waitAvailable(uint32_t timeout){
+
+	uint32_t start = millis();
+    while(available() < 1){	
+		if(millis()-start > timeout){
+		  return 0; 
+		}
+		Ethernet.tick();
+	}
+	return available();
+}
+
+int
 UIPClient::available()
 {
+  Ethernet.tick();
   if (*this)
     return _available(data);
   return 0;
@@ -265,6 +286,7 @@ UIPClient::read(uint8_t *buf, size_t size)
       do
         {
           read = Enc28J60Network::readPacket(data->packets_in[0],0,buf+size-remain,remain);
+		  data->dataCnt -= read;
           if (read == Enc28J60Network::blockSize(data->packets_in[0]))
             {
               remain -= read;
@@ -353,39 +375,40 @@ uipclient_appcall(void)
     }
   if (u)
     {
-      if (uip_newdata())
-        {
+if (uip_newdata())
+      {
 #ifdef UIPETHERNET_DEBUG_CLIENT
           Serial.print(F("UIPClient uip_newdata, uip_len:"));
           Serial.println(uip_len);
 #endif
-          if (uip_len && !(u->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_REMOTECLOSED)))
-            {
-              for (uint8_t i=0; i < UIP_SOCKET_NUMPACKETS; i++)
-                {
-                  if (u->packets_in[i] == NOBLOCK)
-                    {
-                      u->packets_in[i] = Enc28J60Network::allocBlock(uip_len);
-                      if (u->packets_in[i] != NOBLOCK)
-                        {
-                          Enc28J60Network::copyPacket(u->packets_in[i],0,UIPEthernetClass::in_packet,((uint8_t*)uip_appdata)-uip_buf,uip_len);
-                          if (i == UIP_SOCKET_NUMPACKETS-1)
-                            uip_stop();
-                          goto finish_newdata;
-                        }
-                    }
-                }
-              UIPEthernetClass::packetstate &= ~UIPETHERNET_FREEPACKET;
+        if (uip_len && !(u->state & (UIP_CLIENT_CLOSE | UIP_CLIENT_REMOTECLOSED)))
+          {
+		  if (u->dataCnt == 0) {
+			u->packets_in[0] = Enc28J60Network::allocBlock(uip_len);
+            //Serial.print("Alloc NewData ");
+		  }else{
+			Enc28J60Network::resizeBlock(u->packets_in[0],0,uip_len+u->dataCnt);						
+		  }
+          if (u->packets_in[0] != NOBLOCK){
+            Enc28J60Network::copyPacket(u->packets_in[0],u->dataCnt,UIPEthernetClass::in_packet,((uint8_t*)uip_appdata)-uip_buf,uip_len);
+            if(u->dataCnt >= UIP_TCP_MSS * ( UIP_SOCKET_NUMPACKETS > 1 ? UIP_SOCKET_NUMPACKETS : 2)){
               uip_stop();
-            }
+			  u->windowOpened = false;
+			  u->state &= ~UIP_CLIENT_RESTART;
+			}
+			u->restartTime = millis();
+			u->dataCnt += uip_datalen();	
+          }
         }
+		goto finish_newdata;
+      }
 finish_newdata:
-      if (u->state & UIP_CLIENT_RESTART)
-        {
-          u->state &= ~UIP_CLIENT_RESTART;
-          uip_restart();
-        }
-      // If the connection has been closed, save received but unread data.
+	  if (u->state & UIP_CLIENT_RESTART && u->windowOpened == false) {
+	    u->windowOpened = true;
+	    uip_restart();
+	    u->restartTime = millis();
+	  }
+// If the connection has been closed, save received but unread data.
       if (uip_closed() || uip_timedout())
         {
 #ifdef UIPETHERNET_DEBUG_CLIENT
@@ -414,7 +437,9 @@ finish_newdata:
 #ifdef UIPETHERNET_DEBUG_CLIENT
           Serial.println(F("UIPClient uip_acked"));
 #endif
-          UIPClient::_eatBlock(&u->packets_out[0]);
+          u->state &= ~UIP_CLIENT_RESTART;
+		  u->windowOpened = false;
+		  UIPClient::_eatBlock(&u->packets_out[0]);
         }
       if (uip_poll() || uip_rexmit())
         {
@@ -444,7 +469,11 @@ finish_newdata:
                     }
                 }
               goto finish;
-            }
+            }else			
+			if(u->state & UIP_CLIENT_RESTART && millis() - u->restartTime > 500 && u->windowOpened == true){
+			  uip_restart();
+			  u->restartTime = millis();
+			}
         }
       // don't close connection unless all outgoing packets are sent
       if (u->state & UIP_CLIENT_CLOSE)
