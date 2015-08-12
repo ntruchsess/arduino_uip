@@ -244,7 +244,8 @@
 // start with recbuf at 0/
 #define RXSTART_INIT     0x0
 // receive buffer end. make sure this is an odd value ( See Rev. B1,B4,B5,B7 Silicon Errata 'Memory (Ethernet Buffer)')
-#define RXSTOP_INIT      (0x1FFF-0x1800)
+//#define RXSTOP_INIT      (0x1FFF-0x1800)
+#define RXSTOP_INIT      2001
 // start TX buffer RXSTOP_INIT+1
 #define TXSTART_INIT     (RXSTOP_INIT+1)
 // stp TX buffer at end of mem

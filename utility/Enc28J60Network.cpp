@@ -146,6 +146,18 @@ void Enc28J60Network::init(uint8_t* macaddr)
   phyWrite(PHLCON,0x476);
 }
 
+
+void Enc28J60Network::status(){
+   
+   #if defined (ENC28J60DEBUG)
+   Serial.println(F("** Status **"));
+   Serial.print(F("EIR ")); Serial.println(readReg(EIR),BIN);
+   Serial.print(F("ERDPTL ")); uint16_t erdptl = readReg(ERDPTL); erdptl = readReg(ERDPTH)<<8; Serial.println(erdptl,DEC);
+   Serial.print(F("ESTAT ")); Serial.println(readReg(ESTAT),BIN);
+   #endif
+}
+
+
 memhandle
 Enc28J60Network::receivePacket()
 {
@@ -157,6 +169,7 @@ Enc28J60Network::receivePacket()
   if (readReg(EPKTCNT) != 0)
     {
       uint16_t readPtr = nextPacketPtr+6 > RXSTOP_INIT ? nextPacketPtr+6-RXSTOP_INIT+RXSTART_INIT : nextPacketPtr+6;
+      uint16_t prevPtr = nextPacketPtr;
       // Set the read pointer to the start of the received packet
       writeRegPair(ERDPTL, nextPacketPtr);
       // read the next packet pointer
@@ -169,6 +182,7 @@ Enc28J60Network::receivePacket()
       // read the receive status (see datasheet page 43)
       rxstat = readOp(ENC28J60_READ_BUF_MEM, 0);
       //rxstat |= readOp(ENC28J60_READ_BUF_MEM, 0) << 8;
+ 
 #ifdef ENC28J60DEBUG
       Serial.print("receivePacket [");
       Serial.print(readPtr,HEX);
@@ -227,7 +241,9 @@ Enc28J60Network::sendPacket(memhandle handle)
   writeRegPair(ETXSTL, start);
   // Set the TXND pointer to correspond to the packet size given
   writeRegPair(ETXNDL, end);
-
+  
+  //writeOp(ENC28J60_BIT_FIELD_CLR, ESTAT, ESTAT_TXABRT);
+  
   uint8_t eir;
 
   // Reset the transmit logic problem. See Rev. B7 Silicon Errata issues 12 and 13
@@ -238,18 +254,57 @@ Enc28J60Network::sendPacket(memhandle handle)
   writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
   // wait for transmission to complete or fail
   {
-    unsigned long timer = millis();
+    /*unsigned long timer = millis();
     while (((eir = readReg(EIR)) & (EIR_TXIF | EIR_TXERIF)) == 0) {
       if (millis() - timer > 1000) {
-	/* Transmit hardware probably hung, try again later. */
-	/* Shouldn't happen according to errata 12 and 13. */
+	// Transmit hardware probably hung, try again later. 
+	// Shouldn't happen according to errata 12 and 13. 
 	writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
 	return false;
       }
-    }
+    }*/
   }
+        while( !( readReg(EIR) & (EIR_TXIF | EIR_TXERIF) ) ){
+          //Wait for completion
+          __asm__("nop\n\t""nop\n\t""nop\n\t""nop\n\t");
+        }  
   writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
-
+  
+       uint16_t savePoint = readReg(ERDPTL);
+     savePoint |= readReg(ERDPTH) << 8;
+     
+//Get the transmit status vector<tx lat collision
+    Enc28J60Network::writeRegPair(ERDPTL,end+3);
+    bool lateCol;
+    //if ( readOp(ENC28J60_READ_BUF_MEM, 0) & 32 ){ lateCol = true; }
+    //if(readByte(end + 4) & 32){ lateCol = true; }
+    if ( readOp(ENC28J60_READ_BUF_MEM, 0) & 32 ){ lateCol = true; }
+    
+  for( int i=0; i<15; i++){
+      if( readReg(EIR) & EIR_TXERIF && lateCol){
+        writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRST);
+        writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRST);
+        writeOp(ENC28J60_BIT_FIELD_CLR, EIR, EIR_TXERIF);
+        writeOp(ENC28J60_BIT_FIELD_CLR, EIR, EIR_TXIF);
+        writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
+        while( !( readReg(EIR) & (EIR_TXIF | EIR_TXERIF) ) ){
+          //Wait for completion
+          __asm__("nop\n\t""nop\n\t""nop\n\t""nop\n\t");
+        }
+        writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
+        Enc28J60Network::writeRegPair(ERDPTL,end+3);
+        //if(readByte(end + 4) & 32){ lateCol = true; }
+        if ( readOp(ENC28J60_READ_BUF_MEM, 0) & 32 ){ lateCol = true; }
+      }else{
+        break;
+      }
+      
+      //Enc28J60Network::writeRegPair(ERDPTL,end+3);
+      //Serial.println(readByte(
+      
+    }
+    Enc28J60Network::writeRegPair(ERDPTL,savePoint);
+    
 #ifdef ENC28J60DEBUG
   Serial.print(F("sendPacket("));
   Serial.print(handle);

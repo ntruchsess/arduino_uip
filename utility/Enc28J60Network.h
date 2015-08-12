@@ -73,7 +73,7 @@ private:
   friend void enc28J60_mempool_block_move_callback(memaddress,memaddress,memaddress);
 
 public:
-
+  static void status();
   uint8_t getrev(void);
   void powerOn();
   void powerOff();

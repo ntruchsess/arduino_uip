@@ -171,7 +171,7 @@ UIPClient::_write(uip_userdata_t* u, const uint8_t *buf, size_t size)
   int remain = size;
   uint16_t written;
 #if UIP_ATTEMPTS_ON_WRITE > 0
-  uint16_t attempts = UIP_ATTEMPTS_ON_WRITE;
+  int attempts = UIP_ATTEMPTS_ON_WRITE;
 #endif
   repeat:
   UIPEthernetClass::tick();
@@ -185,10 +185,13 @@ newpacket:
           if (u->packets_out[p] == NOBLOCK)
             {
 #if UIP_ATTEMPTS_ON_WRITE > 0
-              if ((--attempts)>0)
+              if ((--attempts)>0){
 #endif
 #if UIP_ATTEMPTS_ON_WRITE != 0
                 goto repeat;
+#endif
+#if UIP_ATTEMPTS_ON_WRITE > 0
+              }
 #endif
               goto ready;
             }
@@ -216,10 +219,13 @@ newpacket:
           if (p == UIP_SOCKET_NUMPACKETS-1)
             {
 #if UIP_ATTEMPTS_ON_WRITE > 0
-              if ((--attempts)>0)
+              if ((--attempts)>0){
 #endif
 #if UIP_ATTEMPTS_ON_WRITE != 0
                 goto repeat;
+#endif
+#if UIP_ATTEMPTS_ON_WRITE > 0
+              }
 #endif
               goto ready;
             }
@@ -379,6 +385,7 @@ if (uip_newdata())
           {
 		  if (u->dataCnt == 0) {
 			u->packets_in[0] = Enc28J60Network::allocBlock(uip_len);
+            //Serial.print("Alloc NewData ");
 		  }else{
 			Enc28J60Network::resizeBlock(u->packets_in[0],0,uip_len+u->dataCnt);						
 		  }
