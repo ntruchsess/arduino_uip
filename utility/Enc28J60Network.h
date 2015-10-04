@@ -27,7 +27,7 @@
 
 #include "mempool.h"
 
-#define ENC28J60_CONTROL_CS     SS
+#define ENC28J60_CONTROL_CS     ENC28J60_CS
 #define SPI_MOSI        MOSI
 #define SPI_MISO        MISO
 #define SPI_SCK         SCK
@@ -76,7 +76,7 @@ public:
   void powerOff();
   bool linkStatus();
 
-  static void init(uint8_t* macaddr);
+  static void init(uint8_t* macaddr, int cs_pin);
   static memhandle receivePacket();
   static void freePacket();
   static memaddress blockSize(memhandle handle);

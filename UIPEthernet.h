@@ -65,11 +65,11 @@ class UIPEthernetClass
 public:
   UIPEthernetClass();
 
-  int begin(const uint8_t* mac);
-  void begin(const uint8_t* mac, IPAddress ip);
-  void begin(const uint8_t* mac, IPAddress ip, IPAddress dns);
-  void begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway);
-  void begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
+  int begin(const uint8_t* mac, int cs_pin=SS);
+  void begin(const uint8_t* mac, IPAddress ip, int cs_pin=SS);
+  void begin(const uint8_t* mac, IPAddress ip, IPAddress dns, int cs_pin=SS);
+  void begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway, int cs_pin=SS);
+  void begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet, int cs_pin=SS);
 
   // maintain() must be called at regular intervals to process the incoming serial
   // data and issue IP events to the sketch.  It does not return until all IP
@@ -92,7 +92,7 @@ private:
 
   static unsigned long periodic_timer;
 
-  static void init(const uint8_t* mac);
+  static void init(const uint8_t* mac, int cs_pin);
   static void configure(IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet);
 
   static void tick();
