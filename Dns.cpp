@@ -59,7 +59,7 @@ int DNSClient::inet_aton(const char* aIPAddrString, IPAddress& aResult)
     // See if we've been given a valid IP address
     const char* p =aIPAddrString;
     while (*p &&
-           ( (*p == '.') || (*p >= '0') || (*p <= '9') ))
+           ( (*p == '.') || ((*p >= '0') && (*p <= '9')) ))
     {
         p++;
     }
