@@ -29,7 +29,7 @@ const uint8_t mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
 // Destination host and port
 const char dsthost[] = "data.sparkfun.com";
-const uint8_t dstport = 80;
+const uint16_t dstport = 80;
 
 // Our three main objects
 EthernetClient client;
