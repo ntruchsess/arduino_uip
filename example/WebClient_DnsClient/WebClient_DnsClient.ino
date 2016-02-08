@@ -74,7 +74,7 @@ void loop() {
     // Prepare the buffers
     char getbuf[96] = {0};
     char hostbuf[32] = {0};
-    sprintf(getbuf, "GET /input/wpY1vnEjXjcl0V0796An?private_key=wzMxe90EDEsRara8PnYg&value=%d", value);
+    sprintf(getbuf, "GET /input/PUBLIC_KEY?private_key=PRIVATE_KEY&value=%d", value);
     sprintf(hostbuf, "\n Host: %s\n\n", dsthost);
 
     // Send the data
