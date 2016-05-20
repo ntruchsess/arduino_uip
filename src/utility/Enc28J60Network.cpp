@@ -26,7 +26,7 @@
 #include "Arduino.h"
 
 extern "C" {
-#include <avr/io.h>
+//#include <avr/io.h>
 #include "enc28j60.h"
 #include "uip.h"
 }
@@ -39,11 +39,19 @@ extern "C" {
 #define CSACTIVE digitalWrite(ENC28J60_CONTROL_CS, LOW)
 // set CS to 1 = passive
 #define CSPASSIVE digitalWrite(ENC28J60_CONTROL_CS, HIGH)
-//
+
 #define waitspi() while(!(SPSR&(1<<SPIF)))
 
 uint16_t Enc28J60Network::nextPacketPtr;
 uint8_t Enc28J60Network::bank=0xff;
+
+uint8_t SPDR = 1;
+uint8_t SPCR = 1;
+uint8_t SPE = 1;
+uint8_t SPSR = 1;
+uint8_t SP2X = 1;
+uint8_t MSTR = 1;
+uint8_t SPIF = 1;
 
 struct memblock Enc28J60Network::receivePkt;
 
@@ -265,7 +273,7 @@ Enc28J60Network::setReadPtr(memhandle handle, memaddress position, uint16_t len)
   memaddress start = handle == UIP_RECEIVEBUFFERHANDLE && packet->begin + position > RXSTOP_INIT ? packet->begin + position-RXSTOP_INIT+RXSTART_INIT : packet->begin + position;
 
   writeRegPair(ERDPTL, start);
-  
+
   if (len > packet->size - position)
     len = packet->size - position;
   return len;

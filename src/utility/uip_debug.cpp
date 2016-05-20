@@ -1,9 +1,9 @@
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #include <inttypes.h>
-#include <utility/uip_debug.h>
+#include "uip_debug.h"
 extern "C" {
-  #import "utility/uip.h"
+  #include "uip.h"
 }
 
 struct uip_conn con[UIP_CONNS];

@@ -33,6 +33,8 @@
 #define SPI_SCK         SCK
 #define SPI_SS          SS
 
+#define SPI2X 1
+
 #define UIP_RECEIVEBUFFERHANDLE 0xff
 
 //#define ENC28J60DEBUG
