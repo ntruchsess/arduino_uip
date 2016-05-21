@@ -16,7 +16,7 @@
  * Copyright (C) 2013 by Norbert Truchsess (norbert.truchsess@t-online.de)
  */
 
-#include <UIPEthernet.h>
+#include "UIPEthernet.h"
 
 EthernetUDP udp;
 unsigned long next;
