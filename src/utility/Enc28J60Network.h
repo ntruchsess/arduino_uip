@@ -27,13 +27,19 @@
 
 #include "mempool.h"
 
-#define ENC28J60_CONTROL_CS     SS
-#define SPI_MOSI        MOSI
-#define SPI_MISO        MISO
-#define SPI_SCK         SCK
-#define SPI_SS          SS
-
-#define SPI2X 1
+#ifndef ESP8266
+	#define ENC28J60_CONTROL_CS     SS
+	#define SPI_MOSI        MOSI
+	#define SPI_MISO        MISO
+	#define SPI_SCK         SCK
+	#define SPI_SS          SS
+#else
+	#define ENC28J60_CONTROL_CS     15
+	#define SPI_MOSI        13
+	#define SPI_MISO        12
+	#define SPI_SCK         14
+	#define SPI_SS          15
+#endif
 
 #define UIP_RECEIVEBUFFERHANDLE 0xff
 

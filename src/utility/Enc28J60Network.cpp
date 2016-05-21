@@ -24,9 +24,12 @@
 
 #include "Enc28J60Network.h"
 #include "Arduino.h"
+#include <SPI.h>
 
 extern "C" {
-//#include <avr/io.h>
+#ifndef ESP8266
+#include <avr/io.h>
+#endif
 #include "enc28j60.h"
 #include "uip.h"
 }
@@ -40,18 +43,14 @@ extern "C" {
 // set CS to 1 = passive
 #define CSPASSIVE digitalWrite(ENC28J60_CONTROL_CS, HIGH)
 
+#ifndef ESP8266
 #define waitspi() while(!(SPSR&(1<<SPIF)))
+#else
+#define waitspi()
+#endif
 
 uint16_t Enc28J60Network::nextPacketPtr;
 uint8_t Enc28J60Network::bank=0xff;
-
-uint8_t SPDR = 1;
-uint8_t SPCR = 1;
-uint8_t SPE = 1;
-uint8_t SPSR = 1;
-uint8_t SP2X = 1;
-uint8_t MSTR = 1;
-uint8_t SPIF = 1;
 
 struct memblock Enc28J60Network::receivePkt;
 
@@ -80,8 +79,16 @@ void Enc28J60Network::init(uint8_t* macaddr)
   //
   // initialize SPI interface
   // master mode and Fosc/2 clock:
-  SPCR = (1<<SPE)|(1<<MSTR);
-  SPSR |= (1<<SPI2X);
+  #ifndef ESP8266
+    SPCR = (1<<SPE)|(1<<MSTR);
+    SPSR |= (1<<SPI2X);
+  #else
+    SPI.begin();
+    // Set clock to 4Mhz (ENC28J60 should support up to about 14Mhz)
+    SPI.setClockDivider(21);
+    SPI.setDataMode(SPI_MODE0);
+    SPI.setBitOrder(MSBFIRST);
+  #endif
   // perform system reset
   writeOp(ENC28J60_SOFT_RESET, 0, ENC28J60_SOFT_RESET);
   delay(50);
@@ -307,13 +314,20 @@ uint8_t Enc28J60Network::readByte(uint16_t addr)
 
   CSACTIVE;
   // issue read command
-  SPDR = ENC28J60_READ_BUF_MEM;
-  waitspi();
-  // read data
-  SPDR = 0x00;
-  waitspi();
-  CSPASSIVE;
-  return (SPDR);
+  #ifndef ESP8266
+    SPDR = ENC28J60_READ_BUF_MEM;
+    waitspi();
+    // read data
+    SPDR = 0x00;
+    waitspi();
+    CSPASSIVE;
+    return (SPDR);
+  #else
+    SPI.transfer(ENC28J60_READ_BUF_MEM);
+    uint8_t out = SPI.transfer(0);
+    CSPASSIVE;
+    return(out);
+  #endif
 }
 
 void Enc28J60Network::writeByte(uint16_t addr, uint8_t data)
@@ -321,12 +335,17 @@ void Enc28J60Network::writeByte(uint16_t addr, uint8_t data)
   writeRegPair(EWRPTL, addr);
 
   CSACTIVE;
+  #ifndef ESP8266
   // issue write command
   SPDR = ENC28J60_WRITE_BUF_MEM;
   waitspi();
   // write data
   SPDR = data;
   waitspi();
+  #else
+  SPI.transfer(ENC28J60_WRITE_BUF_MEM);
+  SPI.transfer(data);
+  #endif
   CSPASSIVE;
 }
 
@@ -405,20 +424,36 @@ Enc28J60Network::readOp(uint8_t op, uint8_t address)
 {
   CSACTIVE;
   // issue read command
+  #ifndef ESP8266
   SPDR = op | (address & ADDR_MASK);
   waitspi();
+  #else
+  SPI.transfer(op | (address & ADDR_MASK));
+  #endif
   // read data
+  #ifndef ESP8266
   SPDR = 0x00;
   waitspi();
+  #else
+  uint8_t out = SPI.transfer(0);
+  #endif
   // do dummy read if needed (for mac and mii, see datasheet page 29)
   if(address & 0x80)
   {
+    #ifndef ESP8266
     SPDR = 0x00;
     waitspi();
+    #else
+    out = SPI.transfer(0);
+    #endif
   }
   // release CS
   CSPASSIVE;
+  #ifndef ESP8266
   return(SPDR);
+  #else
+  return(out);
+  #endif
 }
 
 void
@@ -426,11 +461,19 @@ Enc28J60Network::writeOp(uint8_t op, uint8_t address, uint8_t data)
 {
   CSACTIVE;
   // issue write command
+  #ifndef ESP8266
   SPDR = op | (address & ADDR_MASK);
   waitspi();
+  #else
+  SPI.transfer(op | (address & ADDR_MASK));
+  #endif
   // write data
+  #ifndef ESP8266
   SPDR = data;
   waitspi();
+  #else
+  SPI.transfer(data);
+  #endif
   CSPASSIVE;
 }
 
@@ -439,15 +482,23 @@ Enc28J60Network::readBuffer(uint16_t len, uint8_t* data)
 {
   CSACTIVE;
   // issue read command
+  #ifndef ESP8266
   SPDR = ENC28J60_READ_BUF_MEM;
   waitspi();
+  #else
+  SPI.transfer(ENC28J60_READ_BUF_MEM);
+  #endif
   while(len)
   {
     len--;
     // read data
+    #ifndef ESP8266
     SPDR = 0x00;
     waitspi();
     *data = SPDR;
+    #else
+    *data = SPI.transfer(0);
+    #endif
     data++;
   }
   //*data='\0';
@@ -459,13 +510,21 @@ Enc28J60Network::writeBuffer(uint16_t len, uint8_t* data)
 {
   CSACTIVE;
   // issue write command
+  #ifndef ESP8266
   SPDR = ENC28J60_WRITE_BUF_MEM;
   waitspi();
+  #else
+  SPI.transfer(ENC28J60_WRITE_BUF_MEM);
+  #endif
   while(len)
   {
     len--;
     // write data
+    #ifndef ESP8266
     SPDR = *data;
+    #else
+    SPI.transfer(*data);
+    #endif
     data++;
     waitspi();
   }
@@ -560,27 +619,40 @@ Enc28J60Network::chksum(uint16_t sum, memhandle handle, memaddress pos, uint16_t
   len = setReadPtr(handle, pos, len)-1;
   CSACTIVE;
   // issue read command
+  #ifndef ESP8266
   SPDR = ENC28J60_READ_BUF_MEM;
+  #else
+  SPI.transfer(ENC28J60_READ_BUF_MEM);
+  #endif
   waitspi();
   uint16_t i;
   for (i = 0; i < len; i+=2)
   {
     // read data
+    #ifndef ESP8266
     SPDR = 0x00;
     waitspi();
     t = SPDR << 8;
     SPDR = 0x00;
     waitspi();
     t += SPDR;
+    #else
+    t = SPI.transfer(0) << 8;
+    t += SPI.transfer(0);
+    #endif
     sum += t;
     if(sum < t) {
       sum++;            /* carry */
     }
   }
   if(i == len) {
+    #ifndef ESP8266
     SPDR = 0x00;
     waitspi();
     t = (SPDR << 8) + 0;
+    #else
+    t = (SPI.transfer(0) << 8) + 0;
+    #endif
     sum += t;
     if(sum < t) {
       sum++;            /* carry */
