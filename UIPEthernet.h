@@ -81,7 +81,7 @@ public:
   IPAddress subnetMask();
   IPAddress gatewayIP();
   IPAddress dnsServerIP();
-  char* hostname();
+  const char* hostname() const;
 
 private:
   static memhandle in_packet;

@@ -481,7 +481,7 @@ IPAddress DhcpClass::getDnsServerIp()
     return IPAddress(_dhcpDnsServerIp);
 }
 
-char* DhcpClass::getHostname()
+const char* DhcpClass::getHostname() const
 {
     return _dhcpHostname;
 }

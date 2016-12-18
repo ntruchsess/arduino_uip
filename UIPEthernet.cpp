@@ -165,7 +165,7 @@ IPAddress UIPEthernetClass::dnsServerIP()
   return _dnsServerAddress;
 }
 
-char* UIPEthernetClass::hostname()
+const char* UIPEthernetClass::hostname() const
 {
   return _dhcp ? _dhcp->getHostname() : "";
 }
