@@ -14,23 +14,11 @@ This library was inspired by the SerialIP implementation by Adam Nielsen <malvin
 Installation
 ------------
 
-To install the libraries, you need to place them into your "libraries" folder. You can find it within your Arduino IDE distribution within the "hardware" folder.
+ - Download the "Source code (zip)" of the latest "for Arduino 1.5.x" release from https://github.com/ntruchsess/arduino_uip/releases
+ - Unzip the downloaded file.
+ - Copy the UIPEthernet directory from the unzipped file to [sketchbook folder]/libraries. You can find the location of [sketchbook folder] in the Arduino IDE at File > Preferences > Sketchbook location
 
-    C:\> cd [path to Arduino distribution]\libraries
-    C:\> git clone https://github.com/ntruchsess/arduino_uip UIPEthernet
-
-Be sure to restart the IDE if it was running.
-
-On a Mac, you will want to create a folder named "libraries" in in the "Documents" -> "Arduino" folder within your home directory. Clone the project there (and restart the IDE, if it was running during this process).
-
-    $ cd ~/Documents/Arduino/libraries
-    $ git clone https://github.com/ntruchsess/arduino_uip UIPEthernet
-    
-Or you download the zipped version of the library from https://github.com/ntruchsess/arduino_uip/releases, and copy the contained directory UIPEthernet to [path to Arduino distribution]\libraries\UIPEthernet.
-
-If you are running Arduino-IDE 1.5.x use release-version 1.59 or checkout branch 'Arduino_1.5.x'
-
-Additional information can be found on the Arduino website: http://www.arduino.cc/en/Hacking/Libraries
+Additional information can be found on the Arduino website: https://www.arduino.cc/en/Guide/Libraries
 
 Documentation
 -------------
