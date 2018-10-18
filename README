@@ -1,3 +1,7 @@
+A further developed version can be found on https://github.com/UIPEthernet/UIPEthernet
+
+--------------------------------------------------------------------------------------
+
 This is UIPEthernet version 1.09
 
 An plugin-replacement of the stock Arduino Ethernet library for ENC28J60 shields and breakout boards. Full support for persistent (streaming) TCP-connections and UDP (Client and Server each), ARP, ICMP, DHCP and DNS. 
