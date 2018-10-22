@@ -36,14 +36,23 @@ extern "C" {
 #endif
 
 // set CS to 0 = active
-#define CSACTIVE digitalWrite(ENC28J60_CONTROL_CS, LOW)
+#define CSACTIVE digitalWrite(CONTROL_CS, LOW)
 // set CS to 1 = passive
-#define CSPASSIVE digitalWrite(ENC28J60_CONTROL_CS, HIGH)
+#define CSPASSIVE digitalWrite(CONTROL_CS, HIGH)
 //
 #define waitspi() while(!(SPSR&(1<<SPIF)))
 
 uint16_t Enc28J60Network::nextPacketPtr;
 uint8_t Enc28J60Network::bank=0xff;
+
+#if defined(__AVR_ATmega32U4__) // LEONARDO
+uint8_t Enc28J60Network::CONTROL_CS = 10;
+uint8_t Enc28J60Network::SPI_SS = 10;
+#else
+uint8_t Enc28J60Network::CONTROL_CS = SS;
+uint8_t Enc28J60Network::SPI_SS = SS;
+#endif
+
 
 struct memblock Enc28J60Network::receivePkt;
 
@@ -52,7 +61,7 @@ void Enc28J60Network::init(uint8_t* macaddr)
   MemoryPool::init(); // 1 byte in between RX_STOP_INIT and pool to allow prepending of controlbyte
   // initialize I/O
   // ss as output:
-  pinMode(ENC28J60_CONTROL_CS, OUTPUT);
+  pinMode(CONTROL_CS, OUTPUT);
   CSPASSIVE; // ss=0
   //
   pinMode(SPI_MOSI, OUTPUT);
