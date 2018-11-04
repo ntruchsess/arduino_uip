@@ -246,12 +246,34 @@ Enc28J60Network::sendPacket(memhandle handle)
   // Set the TXND pointer to correspond to the packet size given
   writeRegPair(ETXNDL, end);
   // send the contents of the transmit buffer onto the network
+ 
+  // seydamir added
+  // Reset the transmit logic problem. See Rev. B7 Silicon Errata issues 12 and 13
+  writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRST);
+  writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRST);
+  writeOp(ENC28J60_BIT_FIELD_CLR, EIR, EIR_TXERIF | EIR_TXIF);
+  // end
+ 
   writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
   // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
-  if( (readReg(EIR) & EIR_TXERIF) )
-    {
-      writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
+  //if( (readReg(EIR) & EIR_TXERIF) )
+  //  {
+  //    writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
+  //  }
+ 
+ //seydamir added
+  {
+	uint8_t eir;
+    unsigned long timer = millis();
+    while (((eir = readReg(EIR)) & (EIR_TXIF | EIR_TXERIF)) == 0) {
+      if (millis() - timer > 1000) {
+	     /* Transmit hardware probably hung, try again later. */
+	     /* Shouldn't happen according to errata 12 and 13. */
+	     writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);	
+      }
     }
+  }
+  // end
 
   //restore data on control-byte position
   if (data)
