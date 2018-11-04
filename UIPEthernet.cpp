@@ -58,6 +58,11 @@ UIPEthernetClass::UIPEthernetClass()
 int
 UIPEthernetClass::begin(const uint8_t* mac)
 {
+  return begin(mac, NULL);
+}
+
+UIPEthernetClass::begin(const uint8_t* mac, const char* hostname)
+{
   static DhcpClass s_dhcp;
   _dhcp = &s_dhcp;
 
@@ -65,7 +70,7 @@ UIPEthernetClass::begin(const uint8_t* mac)
   init(mac);
 
   // Now try to get our config info from a DHCP server
-  int ret = _dhcp->beginWithDHCP((uint8_t*)mac);
+  int ret = _dhcp->beginWithDHCP((uint8_t*)mac, hostname);
   if(ret == 1)
   {
     // We've successfully found a DHCP server and got our configuration info, so set things
@@ -158,6 +163,11 @@ IPAddress UIPEthernetClass::gatewayIP()
 IPAddress UIPEthernetClass::dnsServerIP()
 {
   return _dnsServerAddress;
+}
+
+const char* UIPEthernetClass::hostname() const
+{
+  return _dhcp ? _dhcp->getHostname() : "";
 }
 
 void
