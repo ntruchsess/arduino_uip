@@ -56,13 +56,13 @@ UIPEthernetClass::UIPEthernetClass()
 
 #if UIP_UDP
 int
-UIPEthernetClass::begin(const uint8_t* mac)
+UIPEthernetClass::begin(const uint8_t* mac, int cs_pin)
 {
   static DhcpClass s_dhcp;
   _dhcp = &s_dhcp;
 
   // Initialise the basic info
-  init(mac);
+  init(mac, cs_pin);
 
   // Now try to get our config info from a DHCP server
   int ret = _dhcp->beginWithDHCP((uint8_t*)mac);
@@ -77,32 +77,32 @@ UIPEthernetClass::begin(const uint8_t* mac)
 #endif
 
 void
-UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip)
+UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip, int cs_pin)
 {
   IPAddress dns = ip;
   dns[3] = 1;
-  begin(mac, ip, dns);
+  begin(mac, ip, dns, cs_pin);
 }
 
 void
-UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip, IPAddress dns)
+UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip, IPAddress dns, int cs_pin)
 {
   IPAddress gateway = ip;
   gateway[3] = 1;
-  begin(mac, ip, dns, gateway);
+  begin(mac, ip, dns, gateway, cs_pin);
 }
 
 void
-UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway)
+UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway, int cs_pin)
 {
   IPAddress subnet(255, 255, 255, 0);
-  begin(mac, ip, dns, gateway, subnet);
+  begin(mac, ip, dns, gateway, subnet, cs_pin);
 }
 
 void
-UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet)
+UIPEthernetClass::begin(const uint8_t* mac, IPAddress ip, IPAddress dns, IPAddress gateway, IPAddress subnet, int cs_pin)
 {
-  init(mac);
+  init(mac, cs_pin);
   configure(ip,dns,gateway,subnet);
 }
 
@@ -314,10 +314,10 @@ sendandfree:
   return true;
 }
 
-void UIPEthernetClass::init(const uint8_t* mac) {
+void UIPEthernetClass::init(const uint8_t* mac, int cs_pin) {
   periodic_timer = millis() + UIP_PERIODIC_TIMER;
 
-  Enc28J60Network::init((uint8_t*)mac);
+  Enc28J60Network::init((uint8_t*)mac, cs_pin);
   uip_seteth_addr(mac);
 
   uip_init();

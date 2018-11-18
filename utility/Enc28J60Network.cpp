@@ -35,6 +35,8 @@ extern "C" {
 #include "HardwareSerial.h"
 #endif
 
+int ENC28J60_CS;
+
 // set CS to 0 = active
 #define CSACTIVE digitalWrite(ENC28J60_CONTROL_CS, LOW)
 // set CS to 1 = passive
@@ -47,10 +49,12 @@ uint8_t Enc28J60Network::bank=0xff;
 
 struct memblock Enc28J60Network::receivePkt;
 
-void Enc28J60Network::init(uint8_t* macaddr)
+void Enc28J60Network::init(uint8_t* macaddr, int cs_pin)
 {
   MemoryPool::init(); // 1 byte in between RX_STOP_INIT and pool to allow prepending of controlbyte
   // initialize I/O
+  // set CS pin
+  ENC28J60_CS = cs_pin;
   // ss as output:
   pinMode(ENC28J60_CONTROL_CS, OUTPUT);
   CSPASSIVE; // ss=0
