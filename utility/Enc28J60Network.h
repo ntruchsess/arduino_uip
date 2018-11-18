@@ -27,11 +27,16 @@
 
 #include "mempool.h"
 
+#ifdef __AVR_ATmega32U4__ 
+#define ENC28J60_CONTROL_CS     10
+#else
 #define ENC28J60_CONTROL_CS     SS
+#endif
+
 #define SPI_MOSI        MOSI
 #define SPI_MISO        MISO
 #define SPI_SCK         SCK
-#define SPI_SS          SS
+#define SPI_SS          ENC28J60_CONTROL_CS
 
 #define UIP_RECEIVEBUFFERHANDLE 0xff
 
