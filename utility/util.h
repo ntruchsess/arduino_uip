@@ -1,7 +1,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#define htons(x) ( ((x)<<8) | (((x)>>8)&0xFF) )
+//PAH - Add & 0xff00 so that it works on 32-bit processors
+#define htons(x) ( (((x)<<8) & 0xff00) | (((x)>>8)&0xFF) )
 #define ntohs(x) htons(x)
 
 #define htonl(x) ( ((x)<<24 & 0xFF000000UL) | \

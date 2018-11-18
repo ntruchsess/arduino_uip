@@ -289,7 +289,9 @@ uint8_t DhcpClass::parseDHCPResponse(unsigned long responseTimeout, uint32_t& tr
 
         while (_dhcpUdpSocket.available() > 0) 
         {
-            switch (_dhcpUdpSocket.read()) 
+//PAH save the byte for later
+            unsigned char sread = _dhcpUdpSocket.read();
+            switch (sread) 
             {
                 case endOption :
                     break;
@@ -370,6 +372,8 @@ uint8_t DhcpClass::parseDHCPResponse(unsigned long responseTimeout, uint32_t& tr
                     }
                     break;
             }
+//PAH break from the loop if endOption was read
+            if(sread == endOption)break;
         }
     }
 
