@@ -87,10 +87,11 @@ void Enc28J60Network::init(uint8_t* macaddr)
   nextPacketPtr = RXSTART_INIT;
   // Rx start
   writeRegPair(ERXSTL, RXSTART_INIT);
-  // set receive pointer address
-  writeRegPair(ERXRDPTL, RXSTART_INIT);
   // RX end
   writeRegPair(ERXNDL, RXSTOP_INIT);
+  // set receive pointer address
+  //writeRegPair(ERXRDPTL, RXSTART_INIT); // TODO: First packet received to even address? Errata 14. /Frol
+  setERXRDPT();
   // TX start
   //writeRegPair(ETXSTL, TXSTART_INIT);
   // TX end
@@ -212,50 +213,68 @@ Enc28J60Network::blockSize(memhandle handle)
   return handle == NOBLOCK ? 0 : handle == UIP_RECEIVEBUFFERHANDLE ? receivePkt.size : blocks[handle].size;
 }
 
-void
+bool
 Enc28J60Network::sendPacket(memhandle handle)
 {
   memblock *packet = &blocks[handle];
-  uint16_t start = packet->begin-1;
-  uint16_t end = start + packet->size;
+  uint16_t start = packet->begin;
+  uint16_t end = start + packet->size - (UIP_SENDBUFFER_OFFSET + UIP_SENDBUFFER_PADDING);
 
-  // backup data at control-byte position
-  uint8_t data = readByte(start);
-  // write control-byte (if not 0 anyway)
-  if (data)
-    writeByte(start, 0);
+  // write control-byte
+  writeByte(start, 0);
+
+  // TX start
+  writeRegPair(ETXSTL, start);
+  // Set the TXND pointer to correspond to the packet size given
+  writeRegPair(ETXNDL, end);
+
+  uint8_t eir;
+
+  // Reset the transmit logic problem. See Rev. B7 Silicon Errata issues 12 and 13
+  writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRST);
+  writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRST);
+  writeOp(ENC28J60_BIT_FIELD_CLR, EIR, EIR_TXERIF |  EIR_TXIF);
+  // send the contents of the transmit buffer onto the network
+  writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
+  // wait for transmission to complete or fail
+  {
+    unsigned long timer = millis();
+    while (((eir = readReg(EIR)) & (EIR_TXIF | EIR_TXERIF)) == 0) {
+      if (millis() - timer > 1000) {
+	/* Transmit hardware probably hung, try again later. */
+	/* Shouldn't happen according to errata 12 and 13. */
+	writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
+	return false;
+      }
+    }
+  }
+  writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
 
 #ifdef ENC28J60DEBUG
-  Serial.print("sendPacket(");
+  Serial.print(F("sendPacket("));
   Serial.print(handle);
-  Serial.print(") [");
+  Serial.print(F(") ["));
   Serial.print(start,HEX);
-  Serial.print("-");
-  Serial.print(end,HEX);
-  Serial.print("]: ");
+  Serial.print(F("-"));
+  Serial.print(start+packet->size,HEX);
+  Serial.print(F("]: "));
   for (uint16_t i=start; i<=end; i++)
     {
       Serial.print(readByte(i),HEX);
       Serial.print(" ");
     }
   Serial.println();
-#endif
-
-  // TX start
-  writeRegPair(ETXSTL, start);
-  // Set the TXND pointer to correspond to the packet size given
-  writeRegPair(ETXNDL, end);
-  // send the contents of the transmit buffer onto the network
-  writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_TXRTS);
-  // Reset the transmit logic problem. See Rev. B4 Silicon Errata point 12.
-  if( (readReg(EIR) & EIR_TXERIF) )
+  for (uint16_t i=end+1; i<= end+UIP_SENDBUFFER_PADDING; i++)
     {
-      writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_TXRTS);
+      Serial.print(readByte(i),BIN);
+      Serial.print(" ");
     }
-
-  //restore data on control-byte position
-  if (data)
-    writeByte(start, data);
+  Serial.println();
+  Serial.print(F("eir: "));
+  Serial.print(eir,BIN);
+  Serial.println();
+#endif
+  return (eir & EIR_TXERIF) == 0;
 }
 
 uint16_t
