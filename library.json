@@ -1,0 +1,37 @@
+{
+  "name": "UIPEthernet",
+  "keywords": "http, web, server, client, ethernet",
+  "description": "ENC28J60 shields and breakout boards: full support for persistent (streaming) TCP-connections and UDP (Client and Server each), ARP, ICMP, DHCP and DNS",
+  "authors":
+  [
+    {
+      "name": "Norbert Truchsess",
+      "email": "norbert.truchsess@t-online.de",
+      "url": "https://github.com/ntruchsess",
+      "maintainer": true
+    },
+    {
+      "name": "Pascal Stang"
+    },   
+    {
+      "name": "Adam Dunkels",
+      "email": "adam@dunkels.com"
+    },   
+    {
+      "name": "Jordan Terrell",
+      "url": "http://blog.jordanterrell.com"
+    },   
+    {
+      "name": "Adam Nielsen",
+      "email": "malvineous@shikadi.net"
+    }    
+  ],
+  "exclude": "tests",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/ntruchsess/arduino_uip.git"
+  },
+  "frameworks": "arduino",
+  "platforms": "atmelavr"
+}
