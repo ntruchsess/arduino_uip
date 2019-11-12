@@ -1,0 +1,23 @@
+language: python
+python:
+    - "2.7"
+
+# Cache PlatformIO packages using Travis CI container-based infrastructure
+sudo: false
+cache:
+    directories:
+        - "~/.platformio"
+
+env:
+    - PLATFORMIO_CI_SRC=examples/AdvancedChatServer/AdvancedChatServer.ino
+    - PLATFORMIO_CI_SRC=examples/EchoServer/EchoServer.ino
+    - PLATFORMIO_CI_SRC=examples/TcpClient/TcpClient.ino
+    - PLATFORMIO_CI_SRC=examples/TcpServer/TcpServer.ino
+    - PLATFORMIO_CI_SRC=examples/UdpClient/UdpClient.ino
+    - PLATFORMIO_CI_SRC=examples/UdpServer/UdpServer.ino
+
+install:
+    - pip install -U platformio
+
+script:
+    - platformio ci --lib=. --board=uno --board=megaatmega1280
