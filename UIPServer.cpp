@@ -26,6 +26,12 @@ UIPServer::UIPServer(uint16_t port) : _port(htons(port))
 {
 }
 
+//added function to change port on the fly
+void UIPServer::setport(uint16_t port)
+{
+  _port=htons(port);
+}
+
 UIPClient UIPServer::available()
 {
   UIPEthernetClass::tick();
