@@ -155,7 +155,7 @@ Enc28J60Network::receivePacket()
   // The above does not work. See Rev. B4 Silicon Errata point 6.
   if (readReg(EPKTCNT) != 0)
     {
-      uint16_t readPtr = nextPacketPtr+6 > RXSTOP_INIT ? nextPacketPtr+6-RXSTOP_INIT+RXSTART_INIT : nextPacketPtr+6;
+      uint16_t readPtr = nextPacketPtr+6 > RXSTOP_INIT ? nextPacketPtr+6-((RXSTOP_INIT + 1)-RXSTART_INIT) : nextPacketPtr+6;
       // Set the read pointer to the start of the received packet
       writeRegPair(ERDPTL, nextPacketPtr);
       // read the next packet pointer
@@ -262,7 +262,7 @@ uint16_t
 Enc28J60Network::setReadPtr(memhandle handle, memaddress position, uint16_t len)
 {
   memblock *packet = handle == UIP_RECEIVEBUFFERHANDLE ? &receivePkt : &blocks[handle];
-  memaddress start = handle == UIP_RECEIVEBUFFERHANDLE && packet->begin + position > RXSTOP_INIT ? packet->begin + position-RXSTOP_INIT+RXSTART_INIT : packet->begin + position;
+  memaddress start = handle == UIP_RECEIVEBUFFERHANDLE && packet->begin + position > RXSTOP_INIT ? packet->begin + position-((RXSTOP_INIT + 1)-RXSTART_INIT) : packet->begin + position;
 
   writeRegPair(ERDPTL, start);
   
@@ -327,7 +327,7 @@ Enc28J60Network::copyPacket(memhandle dest_pkt, memaddress dest_pos, memhandle s
 {
   memblock *dest = &blocks[dest_pkt];
   memblock *src = src_pkt == UIP_RECEIVEBUFFERHANDLE ? &receivePkt : &blocks[src_pkt];
-  memaddress start = src_pkt == UIP_RECEIVEBUFFERHANDLE && src->begin + src_pos > RXSTOP_INIT ? src->begin + src_pos-RXSTOP_INIT+RXSTART_INIT : src->begin + src_pos;
+  memaddress start = src_pkt == UIP_RECEIVEBUFFERHANDLE && src->begin + src_pos > RXSTOP_INIT ? src->begin + src_pos-((RXSTOP_INIT + 1)-RXSTART_INIT) : src->begin + src_pos;
   enc28J60_mempool_block_move_callback(dest->begin+dest_pos,start,len);
   // Move the RX read pointer to the start of the next received packet
   // This frees the memory we just read out
@@ -367,7 +367,7 @@ enc28J60_mempool_block_move_callback(memaddress dest, memaddress src, memaddress
       Enc28J60Network::writeRegPair(EDMASTL, src);
       Enc28J60Network::writeRegPair(EDMADSTL, dest);
 
-      if ((src <= RXSTOP_INIT)&& (len > RXSTOP_INIT))len -= (RXSTOP_INIT-RXSTART_INIT);
+      if ((src <= RXSTOP_INIT)&& (len > RXSTOP_INIT))len -= ((RXSTOP_INIT + 1)-RXSTART_INIT);
       Enc28J60Network::writeRegPair(EDMANDL, len);
 
       /*
