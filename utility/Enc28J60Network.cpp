@@ -329,9 +329,7 @@ Enc28J60Network::copyPacket(memhandle dest_pkt, memaddress dest_pos, memhandle s
   memblock *src = src_pkt == UIP_RECEIVEBUFFERHANDLE ? &receivePkt : &blocks[src_pkt];
   memaddress start = src_pkt == UIP_RECEIVEBUFFERHANDLE && src->begin + src_pos > RXSTOP_INIT ? src->begin + src_pos-((RXSTOP_INIT + 1)-RXSTART_INIT) : src->begin + src_pos;
   enc28J60_mempool_block_move_callback(dest->begin+dest_pos,start,len);
-  // Move the RX read pointer to the start of the next received packet
-  // This frees the memory we just read out
-  setERXRDPT();
+  // setERXRDPT(); let it to freePacket after all packets are saved
 }
 
 void
