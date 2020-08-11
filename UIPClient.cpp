@@ -297,7 +297,7 @@ int
 UIPClient::read()
 {
   uint8_t c;
-  if (read(&c,1) < 0)
+  if (read(&c,1) <= 0)
     return -1;
   return c;
 }
