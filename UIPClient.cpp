@@ -436,10 +436,10 @@ finish_newdata:
               if (send_len > 0)
                 {
                   UIPEthernetClass::uip_hdrlen = ((uint8_t*)uip_appdata)-uip_buf;
-                  UIPEthernetClass::uip_packet = Enc28J60Network::allocBlock(UIPEthernetClass::uip_hdrlen+send_len);
+                  UIPEthernetClass::uip_packet = Enc28J60Network::allocBlock(UIPEthernetClass::uip_hdrlen + send_len + UIP_SENDBUFFER_OFFSET + UIP_SENDBUFFER_PADDING);
                   if (UIPEthernetClass::uip_packet != NOBLOCK)
                     {
-                      Enc28J60Network::copyPacket(UIPEthernetClass::uip_packet,UIPEthernetClass::uip_hdrlen,u->packets_out[0],0,send_len);
+                      Enc28J60Network::copyPacket(UIPEthernetClass::uip_packet,UIPEthernetClass::uip_hdrlen + UIP_SENDBUFFER_OFFSET,u->packets_out[0],0,send_len);
                       UIPEthernetClass::packetstate |= UIPETHERNET_SENDPACKET;
                     }
                 }
